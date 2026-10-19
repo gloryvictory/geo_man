@@ -100,3 +100,20 @@ export interface GeoLayerGroup {
   href: string;
   error?: string;
 }
+
+export interface LayerAnalyticsRow {
+  l_name: string;
+  l_title: string;
+  l_projection: string;
+  w_name: string;
+  w_name_full: string;
+  s_name: string;
+  s_host: string;
+  s_port: string;
+  s_database: string;
+  s_schema: string;
+  s_native_name: string;
+  s_user: string;
+  s_dbtype: string;
+  s_native_srs: string;
+}

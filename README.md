@@ -139,6 +139,7 @@ geo_man/
 | POST | `/api/connections/:id/test` | проверить доступность |
 | GET | `/api/connections/:id/info` | общая информация о GeoServer |
 | GET | `/api/connections/:id/layers` | список слоёв (с деталями) |
+| GET | `/api/connections/:id/layers/analytics` | аналитика по слоям (проекция, хранилище, хост/порт/БД/схема/пользователь, нативный SRS) |
 | GET | `/api/connections/:id/layers/:name` | детали слоя |
 | GET | `/api/connections/:id/styles` | список стилей (с деталями, глобальные + по рабочим областям) |
 | GET | `/api/connections/:id/styles/:name` | детали стиля + SLD (`name` может быть `workspace:name`) |
