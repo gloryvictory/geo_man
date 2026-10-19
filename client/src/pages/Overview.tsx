@@ -6,7 +6,7 @@ import { api } from '../api';
 import { Loader, Tabs, Input, Button } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
 import { Layers, Palette, Box, ChevronRight, Database, Boxes, RefreshCw, FileDown } from 'lucide-react';
-import type { ManifestEntry } from '../types';
+import type { ManifestEntry, ModuleStatus } from '../types';
 
 function StatCard({
   icon,
@@ -39,10 +39,13 @@ function StatCard({
 export default function Overview() {
   const navigate = useNavigate();
   const { activeConnId, connected, connecting, info, layers, stores, layergroups, loadingInfo } = useStore();
-  const [tab, setTab] = useState<'info' | 'config'>('info');
+  const [tab, setTab] = useState<'info' | 'config' | 'modules'>('info');
   const [q, setQ] = useState('');
   const [manifest, setManifest] = useState<ManifestEntry[] | null>(null);
   const [manifestLoading, setManifestLoading] = useState(false);
+  const [modules, setModules] = useState<ModuleStatus[] | null>(null);
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [mq, setMq] = useState('');
 
   const typeCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -64,6 +67,19 @@ export default function Overview() {
     );
   }, [manifest, q]);
 
+  const filteredModules = useMemo(() => {
+    const list = modules ?? [];
+    const s = mq.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter(
+      (m) =>
+        m.name.toLowerCase().includes(s) ||
+        m.module.toLowerCase().includes(s) ||
+        m.component.toLowerCase().includes(s) ||
+        m.version.toLowerCase().includes(s)
+    );
+  }, [modules, mq]);
+
   async function loadManifest(force = false) {
     if (!activeConnId) return;
     if (!force && (manifest !== null || manifestLoading)) return;
@@ -77,8 +93,22 @@ export default function Overview() {
     }
   }
 
+  async function loadModules(force = false) {
+    if (!activeConnId) return;
+    if (!force && (modules !== null || modulesLoading)) return;
+    setModulesLoading(true);
+    try {
+      setModules(await api.modules(activeConnId));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки модулей');
+    } finally {
+      setModulesLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (tab === 'config') loadManifest();
+    if (tab === 'modules') loadModules();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -87,6 +117,21 @@ export default function Overview() {
     const rows = filteredManifest.map((m) => [m.name, m.title, m.version]);
     if (format === 'xlsx') exportToExcel('geo_man_manifest', header, rows);
     else exportToCsv('geo_man_manifest', header, rows);
+  }
+
+  function doExportModules(format: 'xlsx' | 'csv') {
+    const header = ['Имя', 'Модуль', 'Компонент', 'Версия', 'Включён', 'Доступен', 'Сообщение'];
+    const rows = filteredModules.map((m) => [
+      m.name,
+      m.module,
+      m.component,
+      m.version,
+      m.enabled ? 'Да' : 'Нет',
+      m.available ? 'Да' : 'Нет',
+      m.message,
+    ]);
+    if (format === 'xlsx') exportToExcel('geo_man_modules', header, rows);
+    else exportToCsv('geo_man_modules', header, rows);
   }
 
   if (!activeConnId) {
@@ -117,10 +162,11 @@ export default function Overview() {
     <div className="flex h-full flex-col p-5">
       <Tabs
         value={tab}
-        onChange={(v) => setTab(v as 'info' | 'config')}
+        onChange={(v) => setTab(v as 'info' | 'config' | 'modules')}
         items={[
           { value: 'info', label: 'Информация' },
           { value: 'config', label: 'Конфигурация' },
+          { value: 'modules', label: 'Модули' },
         ]}
       />
 
@@ -206,7 +252,7 @@ export default function Overview() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : tab === 'config' ? (
         <div className="flex min-h-0 flex-1 flex-col pt-4">
           <div className="mb-3 flex items-center gap-2">
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по имени/названию/версии…" className="max-w-[320px]" />
@@ -253,6 +299,70 @@ export default function Overview() {
                       <td className="px-3 py-1.5 font-mono text-[var(--text)]">{m.name}</td>
                       <td className="px-3 py-1.5 text-[var(--muted)]">{m.title || '—'}</td>
                       <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{m.version || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col pt-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Input value={mq} onChange={(e) => setMq(e.target.value)} placeholder="Поиск по имени/модулю/версии…" className="max-w-[320px]" />
+            <Button variant="subtle" onClick={() => loadModules(true)}>
+              <RefreshCw size={13} />
+              Обновить
+            </Button>
+            <div className="flex-1" />
+            <span className="text-[12px] text-[var(--faint)]">{filteredModules.length} из {(modules ?? []).length}</span>
+            <Button variant="subtle" onClick={() => doExportModules('xlsx')}>
+              <FileDown size={13} />
+              Excel
+            </Button>
+            <Button variant="subtle" onClick={() => doExportModules('csv')}>
+              <FileDown size={13} />
+              CSV
+            </Button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[var(--border)]">
+            {modulesLoading || modules === null ? (
+              <div className="grid h-full place-items-center">
+                <Loader size={24} />
+              </div>
+            ) : (
+              <table className="w-full border-collapse text-[12.5px]">
+                <thead className="sticky top-0 bg-[var(--bg-raised)]">
+                  <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--faint)]">
+                    <th className="px-3 py-2 font-medium">Имя</th>
+                    <th className="px-3 py-2 font-medium">Модуль</th>
+                    <th className="px-3 py-2 font-medium">Компонент</th>
+                    <th className="px-3 py-2 font-medium">Версия</th>
+                    <th className="px-3 py-2 font-medium">Включён</th>
+                    <th className="px-3 py-2 font-medium">Доступен</th>
+                    <th className="px-3 py-2 font-medium">Сообщение</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredModules.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-6 text-center text-[var(--faint)]">
+                        Нет данных
+                      </td>
+                    </tr>
+                  )}
+                  {filteredModules.map((m) => (
+                    <tr key={m.name} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]">
+                      <td className="px-3 py-1.5 text-[var(--text)]">{m.name}</td>
+                      <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{m.module || '—'}</td>
+                      <td className="px-3 py-1.5 text-[var(--muted)]">{m.component || '—'}</td>
+                      <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{m.version || '—'}</td>
+                      <td className="px-3 py-1.5 text-[var(--muted)]">{m.enabled ? 'Да' : 'Нет'}</td>
+                      <td className="px-3 py-1.5 text-[var(--muted)]">{m.available ? 'Да' : 'Нет'}</td>
+                      <td className="max-w-[320px] truncate px-3 py-1.5 text-[var(--faint)]" title={m.message || ''}>
+                        {m.message || '—'}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

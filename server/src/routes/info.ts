@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getConnection, getSavedPassword } from '../sqlite';
-import { gsJson, asArray, type GeoServerConfig } from '../geoserver';
+import { gsJson, gsText, asArray, type GeoServerConfig } from '../geoserver';
 
 const r = Router();
 
@@ -84,6 +84,75 @@ r.get('/:id/manifest', async (req, res, next) => {
       .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
 
     res.json(entries);
+  } catch (e) {
+    next(e);
+  }
+});
+
+interface ModuleStatus {
+  name: string;
+  module: string;
+  component: string;
+  version: string;
+  enabled: boolean;
+  available: boolean;
+  message: string;
+}
+
+function decodeEntities(s: string): string {
+  const once = (t: string) =>
+    t
+      .replace(/&amp;/g, '&')
+      .replace(/&apos;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(Number(d)))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const first = once(s);
+  // GeoServer экранирует сообщения дважды (напр. &amp;apos;)
+  return /&amp;|&apos;|&quot;|&lt;|&gt;/.test(first) ? once(first) : first;
+}
+
+function parseModuleStatus(html: string): ModuleStatus[] {
+  const out: ModuleStatus[] = [];
+  const blockRe = /<h3>\s*Module name:\s*([^<]+)\s*<\/h3>([\s\S]*?)(?=<h3>|$)/g;
+  const kvRe = /<li><b>([^<]+)<\/b>\s*:\s*([^<]*)/g;
+  let m: RegExpExecArray | null;
+  while ((m = blockRe.exec(html)) !== null) {
+    const item: ModuleStatus = {
+      name: decodeEntities(m[1].trim()),
+      module: '',
+      component: '',
+      version: '',
+      enabled: false,
+      available: false,
+      message: '',
+    };
+    kvRe.lastIndex = 0;
+    let kv: RegExpExecArray | null;
+    while ((kv = kvRe.exec(m[2])) !== null) {
+      const key = kv[1].trim();
+      const val = decodeEntities(kv[2].trim());
+      if (key === 'Module') item.module = val;
+      else if (key === 'Component') item.component = val;
+      else if (key === 'Version') item.version = val;
+      else if (key === 'Enabled') item.enabled = val === 'true';
+      else if (key === 'Available') item.available = val === 'true';
+      else if (key === 'Message') item.message = val;
+    }
+    out.push(item);
+  }
+  return out;
+}
+
+r.get('/:id/modules', async (req, res, next) => {
+  try {
+    const conn = getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const html = await gsText(cfg, '/about/status');
+    res.json(parseModuleStatus(html));
   } catch (e) {
     next(e);
   }

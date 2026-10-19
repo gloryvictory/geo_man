@@ -123,3 +123,13 @@ export interface ManifestEntry {
   title: string;
   version: string;
 }
+
+export interface ModuleStatus {
+  name: string;
+  module: string;
+  component: string;
+  version: string;
+  enabled: boolean;
+  available: boolean;
+  message: string;
+}
