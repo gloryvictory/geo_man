@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { RefreshCw, FileDown } from 'lucide-react';
+import { RefreshCw, FileDown, Download } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Modal, Input, Button, Info } from '../components/ui';
-import { exportToExcel, exportToCsv } from '../lib/export';
+import { exportToExcel, exportToCsv, downloadText } from '../lib/export';
 import type { GeoStyleDetail } from '../types';
 
 export default function Styles() {
@@ -34,6 +34,17 @@ export default function Styles() {
       toast.error(e instanceof Error ? e.message : 'Ошибка');
     } finally {
       setDetailLoading(false);
+    }
+  }
+
+  async function downloadStyle(name: string) {
+    if (!activeConnId) return;
+    try {
+      const d = await api.styleDetail(activeConnId, name);
+      downloadText(d.filename || `${name}.sld`, d.sld);
+      toast.success('Стиль скачан');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка скачивания');
     }
   }
 
@@ -85,12 +96,13 @@ export default function Styles() {
                 <th className="px-3 py-2 font-medium">Формат</th>
                 <th className="px-3 py-2 font-medium">Версия</th>
                 <th className="px-3 py-2 font-medium">Файл</th>
+                <th className="px-3 py-2 font-medium">Действия</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-3 py-6 text-center text-[var(--faint)]">
+                  <td colSpan={6} className="px-3 py-6 text-center text-[var(--faint)]">
                     Стили не найдены
                   </td>
                 </tr>
@@ -108,6 +120,18 @@ export default function Styles() {
                   </td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.version || '—'}</td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.filename || '—'}</td>
+                  <td className="px-3 py-1.5 text-right">
+                    <Button
+                      variant="icon"
+                      title="Скачать стиль"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        downloadStyle(s.name);
+                      }}
+                    >
+                      <Download size={14} />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
