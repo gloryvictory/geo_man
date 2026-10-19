@@ -86,8 +86,18 @@ export default function Overview() {
           value={info.workspaceCount}
           onClick={() => navigate('/workspaces')}
         />
-        <StatCard icon={<Layers size={18} />} label="Слои" value={info.layerCount} />
-        <StatCard icon={<Palette size={18} />} label="Стили" value={info.styleCount} />
+        <StatCard
+          icon={<Layers size={18} />}
+          label="Слои"
+          value={info.layerCount}
+          onClick={() => navigate('/layers')}
+        />
+        <StatCard
+          icon={<Palette size={18} />}
+          label="Стили"
+          value={info.styleCount}
+          onClick={() => navigate('/styles')}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
