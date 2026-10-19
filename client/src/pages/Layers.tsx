@@ -5,7 +5,7 @@ import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Modal, Input, Button, Info, Select, Tabs } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
-import type { LayerDetail, LayerAnalyticsRow } from '../types';
+import type { LayerDetail, LayerAnalyticsRow, GwcInfo } from '../types';
 
 const ANALYTICS_COLS: { key: keyof LayerAnalyticsRow; label: string }[] = [
   { key: 'l_name', label: 'Слой' },
@@ -24,15 +24,24 @@ const ANALYTICS_COLS: { key: keyof LayerAnalyticsRow; label: string }[] = [
   { key: 's_native_srs', label: 'Нативный SRS' },
 ];
 
+function formatBytes(b: number): string {
+  if (!b) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(b) / Math.log(1024));
+  return `${(b / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
+}
+
 export default function Layers() {
   const { activeConnId, connected, layers, loadingLayers, fetchLayers } = useStore();
-  const [tab, setTab] = useState<'info' | 'analytics'>('info');
+  const [tab, setTab] = useState<'info' | 'analytics' | 'gwc'>('info');
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
   const [aq, setAq] = useState('');
   const [awsFilter, setAwsFilter] = useState('');
   const [analytics, setAnalytics] = useState<LayerAnalyticsRow[] | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [gwc, setGwc] = useState<GwcInfo | null>(null);
+  const [gwcLoading, setGwcLoading] = useState(false);
   const [detail, setDetail] = useState<LayerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
@@ -98,8 +107,22 @@ export default function Layers() {
     }
   }
 
+  async function loadGwc(force = false) {
+    if (!activeConnId) return;
+    if (!force && (gwc !== null || gwcLoading)) return;
+    setGwcLoading(true);
+    try {
+      setGwc(await api.gwc(activeConnId));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки GeoWebCache');
+    } finally {
+      setGwcLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (tab === 'analytics') loadAnalytics();
+    if (tab === 'gwc') loadGwc();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -130,6 +153,19 @@ export default function Layers() {
     else exportToCsv('geo_man_layers_analytics', header, rows);
   }
 
+  function doExportGwc(format: 'xlsx' | 'csv') {
+    const header = ['Слой', 'Включён', 'В памяти', 'Форматы', 'Сетки'];
+    const rows = (gwc?.tileLayers ?? []).map((t) => [
+      t.name,
+      t.enabled ? 'да' : 'нет',
+      t.inMemoryCached ? 'да' : 'нет',
+      t.mimeFormats.join(', '),
+      t.gridSubsets.join(', '),
+    ]);
+    if (format === 'xlsx') exportToExcel('geo_man_gwc', header, rows);
+    else exportToCsv('geo_man_gwc', header, rows);
+  }
+
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
   }
@@ -141,10 +177,11 @@ export default function Layers() {
     <div className="flex h-full flex-col p-4">
       <Tabs
         value={tab}
-        onChange={(v) => setTab(v as 'info' | 'analytics')}
+        onChange={(v) => setTab(v as 'info' | 'analytics' | 'gwc')}
         items={[
           { value: 'info', label: 'Информация' },
           { value: 'analytics', label: 'Аналитика' },
+          { value: 'gwc', label: 'GeoWebCache' },
         ]}
       />
 
@@ -219,7 +256,7 @@ export default function Layers() {
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === 'analytics' ? (
         <div className="flex min-h-0 flex-1 flex-col pt-3">
           <div className="mb-3 flex items-center gap-2">
             <Input value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Поиск по слою/хранилищу/хосту…" className="max-w-[320px]" />
@@ -273,6 +310,87 @@ export default function Layers() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col pt-3">
+          <div className="mb-3 flex items-center gap-2">
+            <Button variant="subtle" onClick={() => loadGwc(true)}>
+              <RefreshCw size={13} />
+              Обновить
+            </Button>
+            <div className="flex-1" />
+            <span className="text-[12px] text-[var(--faint)]">{(gwc?.tileLayers ?? []).length} тайловых слоёв</span>
+            <Button variant="subtle" onClick={() => doExportGwc('xlsx')}>
+              <FileDown size={13} />
+              Excel
+            </Button>
+            <Button variant="subtle" onClick={() => doExportGwc('csv')}>
+              <FileDown size={13} />
+              CSV
+            </Button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto">
+            {gwcLoading || gwc === null ? (
+              <div className="grid h-full place-items-center">
+                <Loader size={24} />
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {gwc.diskQuota && (
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
+                    <h3 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Квота диска</h3>
+                    <div className="grid grid-cols-4 gap-3">
+                      <Info label="Включена" value={gwc.diskQuota.enabled ? 'да' : 'нет'} mono />
+                      <Info label="Объём" value={formatBytes(gwc.diskQuota.globalQuotaBytes)} mono />
+                      <Info label="Политика" value={gwc.diskQuota.globalExpirationPolicyName || '—'} mono />
+                      <Info
+                        label="Очистка"
+                        value={`${gwc.diskQuota.cacheCleanUpFrequency} ${gwc.diskQuota.cacheCleanUpUnits}`.trim()}
+                        mono
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-[var(--border)]">
+                  <table className="w-full border-collapse text-[12.5px]">
+                    <thead className="sticky top-0 bg-[var(--bg-raised)]">
+                      <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--faint)]">
+                        <th className="px-3 py-2 font-medium">Слой</th>
+                        <th className="px-3 py-2 font-medium">Включён</th>
+                        <th className="px-3 py-2 font-medium">В памяти</th>
+                        <th className="px-3 py-2 font-medium">Форматы</th>
+                        <th className="px-3 py-2 font-medium">Сетки</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gwc.tileLayers.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="px-3 py-6 text-center text-[var(--faint)]">
+                            Нет тайловых слоёв
+                          </td>
+                        </tr>
+                      )}
+                      {gwc.tileLayers.map((t) => (
+                        <tr key={t.name} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]">
+                          <td className="px-3 py-1.5 font-mono text-[var(--text)]">{t.name}</td>
+                          <td className="px-3 py-1.5">
+                            <span className={`badge ${t.enabled ? 'pk' : 'kind'}`}>{t.enabled ? 'да' : 'нет'}</span>
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <span className={`badge ${t.inMemoryCached ? 'pk' : 'kind'}`}>{t.inMemoryCached ? 'да' : 'нет'}</span>
+                          </td>
+                          <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{t.mimeFormats.join(', ') || '—'}</td>
+                          <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{t.gridSubsets.join(', ') || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
           </div>
         </div>

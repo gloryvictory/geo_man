@@ -12,6 +12,7 @@ import workspacesRouter from './routes/workspaces';
 import storesRouter from './routes/stores';
 import layergroupsRouter from './routes/layergroups';
 import cloneRouter from './routes/clone';
+import gwcRouter from './routes/gwc';
 import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import { requireAuth } from './auth';
@@ -48,6 +49,7 @@ app.use('/api/connections', workspacesRouter);
 app.use('/api/connections', storesRouter);
 app.use('/api/connections', layergroupsRouter);
 app.use('/api/connections', cloneRouter);
+app.use('/api/connections', gwcRouter);
 
 // раздача собранного клиента (production)
 const clientDist = path.resolve(__dirname, '../../client/dist');

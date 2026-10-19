@@ -1,4 +1,4 @@
-import type { StoredConnection, User, GeoInfo, GeoLayer, LayerDetail, GeoStyle, GeoStyleDetail, GeoWorkspace, WorkspaceDetail, GeoStore, GeoLayerGroup, LayerAnalyticsRow, ManifestEntry, ModuleStatus, GeoServerSettings } from './types';
+import type { StoredConnection, User, GeoInfo, GeoLayer, LayerDetail, GeoStyle, GeoStyleDetail, GeoWorkspace, WorkspaceDetail, GeoStore, GeoLayerGroup, LayerAnalyticsRow, ManifestEntry, ModuleStatus, GeoServerSettings, GwcInfo } from './types';
 
 const BASE_URL = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '');
 const BASE = BASE_URL + '/api';
@@ -49,6 +49,7 @@ export const api = {
   modules: (id: string) => http<ModuleStatus[]>(`/connections/${id}/modules`),
   fonts: (id: string) => http<string[]>(`/connections/${id}/fonts`),
   settings: (id: string) => http<GeoServerSettings>(`/connections/${id}/settings`),
+  gwc: (id: string) => http<GwcInfo>(`/connections/${id}/gwc`),
   styles: (id: string) => http<GeoStyle[]>(`/connections/${id}/styles`),
   styleDetail: (id: string, name: string) => http<GeoStyleDetail>(`/connections/${id}/styles/${enc(name)}`),
   workspaces: (id: string) => http<GeoWorkspace[]>(`/connections/${id}/workspaces`),

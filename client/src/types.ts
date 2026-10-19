@@ -145,3 +145,24 @@ export interface GeoServerSettings {
   jai: Record<string, string>;
   coverageAccess: Record<string, string>;
 }
+
+export interface GwcTileLayer {
+  name: string;
+  enabled: boolean;
+  inMemoryCached: boolean;
+  mimeFormats: string[];
+  gridSubsets: string[];
+  error?: string;
+}
+
+export interface GwcInfo {
+  diskQuota: {
+    enabled: boolean;
+    cacheCleanUpFrequency: number;
+    cacheCleanUpUnits: string;
+    maxConcurrentCleanUps: number;
+    globalExpirationPolicyName: string;
+    globalQuotaBytes: number;
+  } | null;
+  tileLayers: GwcTileLayer[];
+}
