@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Power, Moon, Sun, User, ChevronDown, LogOut, ShieldCheck, Layers, Palette, Info } from 'lucide-react';
+import { Plus, Power, Moon, Sun, User, ChevronDown, LogOut, ShieldCheck, Layers, Palette, Info, Box } from 'lucide-react';
 import { useStore } from '../store';
 import { getTheme, applyTheme, type Theme } from '../lib/theme';
 import { Button, Select, Modal } from './ui';
@@ -117,6 +117,7 @@ export default function Topbar() {
 
       <nav className="flex items-center gap-1">
         {navItem('/', <Info size={14} />, 'Обзор')}
+        {navItem('/workspaces', <Box size={14} />, 'Рабочие области')}
         {navItem('/layers', <Layers size={14} />, 'Слои')}
         {navItem('/styles', <Palette size={14} />, 'Стили')}
       </nav>

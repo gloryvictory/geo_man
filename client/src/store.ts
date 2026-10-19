@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import toast from 'react-hot-toast';
 import { api } from './api';
-import type { StoredConnection, GeoInfo, GeoLayer, GeoStyle } from './types';
+import type { StoredConnection, GeoInfo, GeoLayer, GeoStyle, GeoWorkspace } from './types';
 
 export interface GeoState {
   connections: StoredConnection[];
@@ -12,9 +12,11 @@ export interface GeoState {
   info: GeoInfo | null;
   layers: GeoLayer[];
   styles: GeoStyle[];
+  workspaces: GeoWorkspace[];
   loadingInfo: boolean;
   loadingLayers: boolean;
   loadingStyles: boolean;
+  loadingWorkspaces: boolean;
 
   loadConnections: () => Promise<void>;
   setActiveConn: (id: string | null) => void;
@@ -32,6 +34,7 @@ export interface GeoState {
   fetchInfo: () => Promise<void>;
   fetchLayers: () => Promise<void>;
   fetchStyles: () => Promise<void>;
+  fetchWorkspaces: () => Promise<void>;
   reset: () => void;
 }
 
@@ -43,9 +46,11 @@ export const useStore = create<GeoState>((set, get) => ({
   info: null,
   layers: [],
   styles: [],
+  workspaces: [],
   loadingInfo: false,
   loadingLayers: false,
   loadingStyles: false,
+  loadingWorkspaces: false,
 
   loadConnections: async () => {
     const conns = await api.listConnections();
@@ -53,16 +58,16 @@ export const useStore = create<GeoState>((set, get) => ({
   },
 
   setActiveConn: (id) =>
-    set({ activeConnId: id, connected: false, info: null, layers: [], styles: [] }),
+    set({ activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [] }),
 
   connect: async (id) => {
-    set({ connecting: true, activeConnId: id, connected: false, info: null, layers: [], styles: [] });
+    set({ connecting: true, activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [] });
     try {
       const r = await api.testConnection(id);
       if (r.connected) {
         set({ connected: true, connecting: false });
         localStorage.setItem('geoman-last-conn', id);
-        await Promise.allSettled([get().fetchInfo(), get().fetchLayers(), get().fetchStyles()]);
+        await Promise.allSettled([get().fetchInfo(), get().fetchLayers(), get().fetchStyles(), get().fetchWorkspaces()]);
         return true;
       }
       set({ connecting: false });
@@ -76,7 +81,7 @@ export const useStore = create<GeoState>((set, get) => ({
   },
 
   disconnect: () =>
-    set({ connected: false, info: null, layers: [], styles: [] }),
+    set({ connected: false, info: null, layers: [], styles: [], workspaces: [] }),
 
   addConnection: async (data) => {
     try {
@@ -143,6 +148,19 @@ export const useStore = create<GeoState>((set, get) => ({
     }
   },
 
+  fetchWorkspaces: async () => {
+    const id = get().activeConnId;
+    if (!id) return;
+    set({ loadingWorkspaces: true });
+    try {
+      const workspaces = await api.workspaces(id);
+      set({ workspaces, loadingWorkspaces: false });
+    } catch (e) {
+      set({ loadingWorkspaces: false });
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки рабочих областей');
+    }
+  },
+
   reset: () =>
     set({
       connections: [],
@@ -152,8 +170,10 @@ export const useStore = create<GeoState>((set, get) => ({
       info: null,
       layers: [],
       styles: [],
+      workspaces: [],
       loadingInfo: false,
       loadingLayers: false,
       loadingStyles: false,
+      loadingWorkspaces: false,
     }),
 }));

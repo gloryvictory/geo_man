@@ -62,3 +62,16 @@ export interface GeoStyle {
 export interface GeoStyleDetail extends GeoStyle {
   sld: string;
 }
+
+export interface GeoWorkspace {
+  name: string;
+  isolated: boolean;
+  dateCreated: string | null;
+  dateModified: string | null;
+  href: string;
+  error?: string;
+}
+
+export interface WorkspaceDetail extends GeoWorkspace {
+  dataStores: string[];
+}

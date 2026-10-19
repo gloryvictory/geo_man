@@ -4,6 +4,7 @@ import Topbar from './components/Topbar';
 import Overview from './pages/Overview';
 import Layers from './pages/Layers';
 import Styles from './pages/Styles';
+import Workspaces from './pages/Workspaces';
 import LoginScreen from './components/LoginScreen';
 import { Loader } from './components/ui';
 import { useAuth } from './store/authStore';
@@ -34,6 +35,7 @@ export default function App() {
       <div className="min-h-0 flex-1">
         <Routes>
           <Route path="/" element={<Overview />} />
+          <Route path="/workspaces" element={<Workspaces />} />
           <Route path="/layers" element={<Layers />} />
           <Route path="/styles" element={<Styles />} />
         </Routes>

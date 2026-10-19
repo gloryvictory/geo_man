@@ -1,21 +1,39 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { Loader } from '../components/ui';
-import { Server, Layers, Palette, Box } from 'lucide-react';
+import { Layers, Palette, Box, ChevronRight } from 'lucide-react';
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+function StatCard({
+  icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  onClick?: () => void;
+}) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
+    <div
+      className={`flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4 ${
+        onClick ? 'cursor-pointer transition-colors hover:border-[var(--accent-dim)] hover:bg-[var(--surface-hover)]' : ''
+      }`}
+      onClick={onClick}
+    >
       <span className="grid h-9 w-9 place-items-center rounded-md bg-[var(--accent-bg)] text-[var(--accent)]">{icon}</span>
       <div>
         <div className="text-[11px] uppercase tracking-wide text-[var(--faint)]">{label}</div>
         <div className="font-mono text-[18px] font-semibold text-[var(--text)]">{value}</div>
       </div>
+      {onClick && <ChevronRight size={16} className="ml-auto shrink-0 text-[var(--faint)]" />}
     </div>
   );
 }
 
 export default function Overview() {
+  const navigate = useNavigate();
   const { activeConnId, connected, connecting, info, layers, loadingInfo } = useStore();
 
   const typeCounts = useMemo(() => {
@@ -62,7 +80,12 @@ export default function Overview() {
       </div>
 
       <div className="mb-5 grid grid-cols-3 gap-3">
-        <StatCard icon={<Box size={18} />} label="Рабочие области" value={info.workspaceCount} />
+        <StatCard
+          icon={<Box size={18} />}
+          label="Рабочие области"
+          value={info.workspaceCount}
+          onClick={() => navigate('/workspaces')}
+        />
         <StatCard icon={<Layers size={18} />} label="Слои" value={info.layerCount} />
         <StatCard icon={<Palette size={18} />} label="Стили" value={info.styleCount} />
       </div>
