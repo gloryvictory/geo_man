@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getConnection, getSavedPassword } from '../sqlite';
-import { gsJson, gsText, asArray, mapLimit, type GeoServerConfig } from '../geoserver';
+import { gsJson, gsText, asArray, mapLimit, gsLegendPng, type GeoServerConfig } from '../geoserver';
 import AdmZip from 'adm-zip';
 
 const r = Router();
@@ -131,6 +131,38 @@ r.get('/:id/styles/:name', async (req, res, next) => {
     const parsed = parseStyle(ref, d?.style) as Record<string, unknown>;
     parsed.sld = sld;
     res.json(parsed);
+  } catch (e) {
+    next(e);
+  }
+});
+
+r.get('/:id/styles/:name/legend', async (req, res, next) => {
+  try {
+    const conn = getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+
+    // квалифицированное имя стиля (workspace:name или name)
+    const style = req.params.name;
+
+    const list = await gsJson<{ layers?: { layer?: { name: string }[] | { name: string } } }>(cfg, '/layers.json');
+    const layers = asArray(list?.layers?.layer).map((l) => l.name);
+    if (layers.length === 0) return res.status(404).json({ error: 'Нет слоёв для построения легенды' });
+
+    let png: Buffer | null = null;
+    for (const layer of layers) {
+      try {
+        png = await gsLegendPng(cfg, layer, style);
+        break;
+      } catch {
+        /* пробуем следующий слой как контекст */
+      }
+    }
+    if (!png) return res.status(404).json({ error: 'Не удалось сгенерировать легенду стиля' });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(png);
   } catch (e) {
     next(e);
   }

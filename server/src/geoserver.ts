@@ -89,3 +89,26 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T, i: nu
   await Promise.all(workers);
   return out;
 }
+
+/** Легенда стиля через WMS GetLegendGraphic (возвращает PNG). */
+export async function gsLegendPng(cfg: GeoServerConfig, layer: string, style: string): Promise<Buffer> {
+  const host = cfg.host.replace(/\/+$/, '');
+  const url =
+    `http://${host}:${cfg.port}/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20` +
+    `&LAYER=${encodeURIComponent(layer)}&STYLE=${encodeURIComponent(style)}`;
+  const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { Authorization: `Basic ${auth}` } });
+  } catch (e) {
+    throw new GeoServerError(`Не удалось связаться с GeoServer: ${(e as Error).message}`, 0);
+  }
+  const ct = res.headers.get('content-type') || '';
+  if (res.ok && ct.includes('image/png')) {
+    return Buffer.from(await res.arrayBuffer());
+  }
+  if (!res.ok) {
+    throw new GeoServerError(friendlyStatus(res.status), res.status);
+  }
+  throw new GeoServerError('Не удалось сгенерировать легенду стиля', 502);
+}

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { RefreshCw, FileDown, Download, Archive } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import { Loader, Modal, Input, Button, Info } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Tabs } from '../components/ui';
 import { exportToExcel, exportToCsv, downloadText, downloadBlob } from '../lib/export';
 import type { GeoStyleDetail } from '../types';
 
@@ -16,6 +16,7 @@ export default function Styles() {
   const [q, setQ] = useState('');
   const [detail, setDetail] = useState<GeoStyleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [tab, setTab] = useState<'sld' | 'legend'>('sld');
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -32,6 +33,7 @@ export default function Styles() {
     if (!activeConnId) return;
     setDetailLoading(true);
     setDetail(null);
+    setTab('sld');
     try {
       setDetail(await api.styleDetail(activeConnId, name));
     } catch (e) {
@@ -173,12 +175,33 @@ export default function Styles() {
               <Info label="Рабочая область" value={detail.workspace ?? '—'} mono />
               <Info label="Файл" value={detail.filename || '—'} mono />
             </div>
-            <div>
-              <div className="mb-1.5 text-[11px] text-[var(--faint)]">SLD</div>
+            <div className="flex items-center gap-2">
+              <Button variant="light" onClick={() => downloadStyle(qualifiedName(detail))}>
+                <Download size={14} />
+                Скачать
+              </Button>
+            </div>
+            <Tabs
+              value={tab}
+              onChange={(v) => setTab(v as 'sld' | 'legend')}
+              items={[
+                { value: 'sld', label: 'SLD' },
+                { value: 'legend', label: 'Легенда' },
+              ]}
+            />
+            {tab === 'sld' ? (
               <pre className="max-h-[50vh] overflow-auto rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-3 font-mono text-[11.5px] leading-relaxed text-[var(--text)]">
                 {detail.sld || '(пусто)'}
               </pre>
-            </div>
+            ) : (
+              <div className="flex min-h-[140px] items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-4">
+                <img
+                  src={api.stylesLegendUrl(activeConnId!, qualifiedName(detail))}
+                  alt="Легенда"
+                  className="max-h-[45vh] max-w-full"
+                />
+              </div>
+            )}
           </div>
         ) : null}
       </Modal>
