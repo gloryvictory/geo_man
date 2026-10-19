@@ -30,6 +30,7 @@ export interface GeoInfo {
   layerCount: number;
   styleCount: number;
   workspaces: string[];
+  dataDirectory: string;
 }
 
 export interface GeoLayer {

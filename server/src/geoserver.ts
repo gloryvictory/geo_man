@@ -76,6 +76,46 @@ export async function gsBuffer(cfg: GeoServerConfig, path: string): Promise<Buff
   return Buffer.from(await res.arrayBuffer());
 }
 
+function extractJSessionId(setCookie: string | null): string {
+  if (!setCookie) return '';
+  const m = setCookie.match(/JSESSIONID=([^;]+)/);
+  return m ? m[1] : '';
+}
+
+/**
+ * Каталог данных GeoServer. REST не отдаёт этот путь напрямую —
+ * получаем через веб-интерфейс (Wicket StatusPage) с form login.
+ */
+export async function gsDataDirectory(cfg: GeoServerConfig): Promise<string> {
+  const host = cfg.host.replace(/\/+$/, '');
+  const base = `http://${host}:${cfg.port}/geoserver`;
+
+  let session = '';
+  const r1 = await fetch(`${base}/web/`, { redirect: 'manual' });
+  session = extractJSessionId(r1.headers.get('set-cookie'));
+
+  const r2 = await fetch(`${base}/j_spring_security_check`, {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      ...(session ? { Cookie: `JSESSIONID=${session}` } : {}),
+    },
+    body: `username=${encodeURIComponent(cfg.username)}&password=${encodeURIComponent(cfg.password)}`,
+  });
+  session = extractJSessionId(r2.headers.get('set-cookie')) || session;
+
+  const r3 = await fetch(`${base}/web/wicket/bookmarkable/org.geoserver.web.admin.StatusPage`, {
+    redirect: 'follow',
+    headers: session ? { Cookie: `JSESSIONID=${session}` } : {},
+  });
+  const html = await r3.text();
+
+  const re = /<th[^>]*>\s*(?:Каталог данных|Data directory|Data Directory)\s*<\/th>\s*<td[^>]*>([^<]*)<\/td>/i;
+  const m = html.match(re);
+  return m ? m[1].trim().replace(/&amp;/g, '&') : '';
+}
+
 /** GeoServer отдаёт одиночный элемент без массива — всегда оборачивать. */
 export function asArray<T>(x: T | T[] | null | undefined): T[] {
   if (x == null) return [];

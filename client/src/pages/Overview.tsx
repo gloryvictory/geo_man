@@ -210,6 +210,13 @@ export default function Overview() {
             {info.buildTimestamp && <span className="text-[12px] text-[var(--muted)]">сборка {info.buildTimestamp}</span>}
           </div>
 
+          {info.dataDirectory && (
+            <div className="mb-5 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] px-4 py-2.5">
+              <span className="text-[12px] text-[var(--faint)]">Каталог данных:</span>
+              <span className="font-mono text-[12.5px] text-[var(--text)]">{info.dataDirectory}</span>
+            </div>
+          )}
+
           <div className="mb-5 grid grid-cols-5 gap-3">
             <StatCard
               icon={<Box size={18} />}

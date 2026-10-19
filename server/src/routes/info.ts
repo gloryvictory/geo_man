@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { TextDecoder } from 'node:util';
 import { getConnection, getSavedPassword } from '../sqlite';
-import { gsJson, gsText, gsBuffer, asArray, type GeoServerConfig } from '../geoserver';
+import { gsJson, gsText, gsBuffer, gsDataDirectory, asArray, type GeoServerConfig } from '../geoserver';
 
 const r = Router();
 
@@ -39,6 +39,13 @@ r.get('/:id/info', async (req, res, next) => {
     const layerNames = asArray(layers?.layers?.layer).map((l) => l.name);
     const styleNames = asArray(styles?.styles?.style).map((s) => s.name);
 
+    let dataDirectory = '';
+    try {
+      dataDirectory = await gsDataDirectory(cfg);
+    } catch {
+      dataDirectory = '';
+    }
+
     res.json({
       version: gs ? String(gs.Version ?? '') : '',
       buildTimestamp: gs?.['Build-Timestamp'] ?? '',
@@ -48,6 +55,7 @@ r.get('/:id/info', async (req, res, next) => {
       layerCount: layerNames.length,
       styleCount: styleNames.length,
       workspaces,
+      dataDirectory,
     });
   } catch (e) {
     next(e);
