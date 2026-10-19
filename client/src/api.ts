@@ -56,7 +56,14 @@ export const api = {
   stores: (id: string) => http<GeoStore[]>(`/connections/${id}/stores`),
   layergroups: (id: string) => http<GeoLayerGroup[]>(`/connections/${id}/layergroups`),
   stylesExportUrl: (id: string) => `${BASE}/connections/${id}/styles/export`,
-  stylesLegendUrl: (id: string, name: string) => `${BASE}/connections/${id}/styles/${enc(name)}/legend`,
+  stylesLegendUrl: (id: string, name: string, width?: number, height?: number) => {
+    let url = `${BASE}/connections/${id}/styles/${enc(name)}/legend`;
+    const p: string[] = [];
+    if (width) p.push(`width=${width}`);
+    if (height) p.push(`height=${height}`);
+    if (p.length) url += '?' + p.join('&');
+    return url;
+  },
 
   // аутентификация
   login: (login: string, password: string) =>

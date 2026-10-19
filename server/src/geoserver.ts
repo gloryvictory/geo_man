@@ -137,10 +137,10 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T, i: nu
 }
 
 /** Легенда стиля через WMS GetLegendGraphic (возвращает PNG). */
-export async function gsLegendPng(cfg: GeoServerConfig, layer: string, style: string): Promise<Buffer> {
+export async function gsLegendPng(cfg: GeoServerConfig, layer: string, style: string, width = 20, height = 20): Promise<Buffer> {
   const host = cfg.host.replace(/\/+$/, '');
   const url =
-    `http://${host}:${cfg.port}/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=20&HEIGHT=20` +
+    `http://${host}:${cfg.port}/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=${width}&HEIGHT=${height}` +
     `&LAYER=${encodeURIComponent(layer)}&STYLE=${encodeURIComponent(style)}`;
   const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
   let res: Response;

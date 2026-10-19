@@ -144,6 +144,8 @@ r.get('/:id/styles/:name/legend', async (req, res, next) => {
 
     // квалифицированное имя стиля (workspace:name или name)
     const style = req.params.name;
+    const width = Math.min(500, Math.max(10, Number(req.query.width) || 20));
+    const height = Math.min(500, Math.max(10, Number(req.query.height) || 20));
 
     const list = await gsJson<{ layers?: { layer?: { name: string }[] | { name: string } } }>(cfg, '/layers.json');
     const layers = asArray(list?.layers?.layer).map((l) => l.name);
@@ -152,7 +154,7 @@ r.get('/:id/styles/:name/legend', async (req, res, next) => {
     let png: Buffer | null = null;
     for (const layer of layers) {
       try {
-        png = await gsLegendPng(cfg, layer, style);
+        png = await gsLegendPng(cfg, layer, style, width, height);
         break;
       } catch {
         /* пробуем следующий слой как контекст */

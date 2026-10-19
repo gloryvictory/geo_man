@@ -20,6 +20,7 @@ export default function Styles() {
   const [detail, setDetail] = useState<GeoStyleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
+  const [hover, setHover] = useState<{ name: string; x: number; y: number } | null>(null);
 
   const workspaceOptions = useMemo(() => {
     const set = new Set<string>();
@@ -133,7 +134,10 @@ export default function Styles() {
     <div className="flex h-full flex-col p-4">
       <Tabs
         value={tab}
-        onChange={(v) => setTab(v as 'info' | 'legend')}
+        onChange={(v) => {
+          setTab(v as 'info' | 'legend');
+          setHover(null);
+        }}
         items={[
           { value: 'info', label: 'Информация' },
           { value: 'legend', label: 'С легендой' },
@@ -260,7 +264,13 @@ export default function Styles() {
                     </tr>
                   )}
                   {filteredLegend.map((s) => (
-                    <tr key={qualifiedName(s)} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]">
+                    <tr
+                      key={qualifiedName(s)}
+                      className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
+                      onMouseEnter={(e) => setHover({ name: qualifiedName(s), x: e.clientX, y: e.clientY })}
+                      onMouseMove={(e) => setHover({ name: qualifiedName(s), x: e.clientX, y: e.clientY })}
+                      onMouseLeave={() => setHover(null)}
+                    >
                       <td className="px-3 py-1.5 font-mono text-[var(--text)]">{qualifiedName(s)}</td>
                       <td className="px-3 py-1.5">
                         <div className="flex h-8 items-center">
@@ -280,6 +290,20 @@ export default function Styles() {
               </table>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === 'legend' && hover && (
+        <div
+          className="pointer-events-none fixed z-[100] rounded-lg border border-[var(--border-strong)] bg-[var(--bg-panel)] p-3 shadow-lg"
+          style={{ left: hover.x + 20, top: hover.y + 20 }}
+        >
+          <img
+            src={api.stylesLegendUrl(activeConnId!, hover.name, 160, 160)}
+            alt=""
+            className="h-[160px] w-[160px] object-contain"
+          />
+          <div className="mt-1.5 text-center font-mono text-[11px] text-[var(--muted)]">{hover.name}</div>
         </div>
       )}
 
