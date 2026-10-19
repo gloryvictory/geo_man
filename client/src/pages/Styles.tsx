@@ -123,6 +123,13 @@ export default function Styles() {
     else exportToCsv('geo_man_styles', header, rows);
   }
 
+  function doExportLegend(format: 'xlsx' | 'csv') {
+    const header = ['Стиль', 'Рабочая область', 'Формат', 'Версия', 'Файл'];
+    const rows = filteredLegend.map((s) => [s.name, s.workspace ?? '', s.format, s.version, s.filename]);
+    if (format === 'xlsx') exportToExcel('geo_man_styles_legend', header, rows);
+    else exportToCsv('geo_man_styles_legend', header, rows);
+  }
+
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
   }
@@ -240,6 +247,14 @@ export default function Styles() {
             </Button>
             <div className="flex-1" />
             <span className="text-[12px] text-[var(--faint)]">{filteredLegend.length} из {styles.length}</span>
+            <Button variant="subtle" onClick={() => doExportLegend('xlsx')}>
+              <FileDown size={13} />
+              Excel
+            </Button>
+            <Button variant="subtle" onClick={() => doExportLegend('csv')}>
+              <FileDown size={13} />
+              CSV
+            </Button>
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[var(--border)]">
