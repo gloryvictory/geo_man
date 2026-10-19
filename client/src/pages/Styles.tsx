@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { RefreshCw, FileDown, Download, Archive } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import { Loader, Modal, Input, Button, Info, Tabs } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Tabs, Select } from '../components/ui';
 import { exportToExcel, exportToCsv, downloadText, downloadBlob } from '../lib/export';
 import type { GeoStyleDetail } from '../types';
 
@@ -14,21 +14,37 @@ function qualifiedName(s: { name: string; workspace: string | null }): string {
 export default function Styles() {
   const { activeConnId, connected, styles, loadingStyles, fetchStyles } = useStore();
   const [q, setQ] = useState('');
+  const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoStyleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [tab, setTab] = useState<'sld' | 'legend'>('sld');
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
 
+  const workspaceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of styles) if (s.workspace) set.add(s.workspace);
+    return [
+      { value: '', label: 'Все' },
+      { value: '__global__', label: 'Глобальные' },
+      ...Array.from(set).sort().map((w) => ({ value: w, label: w })),
+    ];
+  }, [styles]);
+
   const filtered = useMemo(() => {
+    let list = styles;
+    if (wsFilter === '__global__') list = list.filter((s) => !s.workspace);
+    else if (wsFilter) list = list.filter((s) => s.workspace === wsFilter);
     const s = q.trim().toLowerCase();
-    if (!s) return styles;
-    return styles.filter(
-      (st) =>
-        st.name.toLowerCase().includes(s) ||
-        (st.workspace ?? '').toLowerCase().includes(s) ||
-        st.format.toLowerCase().includes(s)
-    );
-  }, [styles, q]);
+    if (s) {
+      list = list.filter(
+        (st) =>
+          st.name.toLowerCase().includes(s) ||
+          (st.workspace ?? '').toLowerCase().includes(s) ||
+          st.format.toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [styles, q, wsFilter]);
 
   useEffect(() => {
     function close() {
@@ -98,6 +114,7 @@ export default function Styles() {
     <div className="flex h-full flex-col p-4">
       <div className="mb-3 flex items-center gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск стилей…" className="max-w-[320px]" />
+        <Select value={wsFilter} onChange={(v) => setWsFilter(v ?? '')} options={workspaceOptions} width={180} />
         <Button variant="subtle" onClick={() => fetchStyles()}>
           <RefreshCw size={13} />
           Обновить
