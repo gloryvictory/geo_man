@@ -11,6 +11,7 @@ import stylesRouter from './routes/styles';
 import workspacesRouter from './routes/workspaces';
 import storesRouter from './routes/stores';
 import layergroupsRouter from './routes/layergroups';
+import cloneRouter from './routes/clone';
 import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import { requireAuth } from './auth';
@@ -46,6 +47,7 @@ app.use('/api/connections', stylesRouter);
 app.use('/api/connections', workspacesRouter);
 app.use('/api/connections', storesRouter);
 app.use('/api/connections', layergroupsRouter);
+app.use('/api/connections', cloneRouter);
 
 // раздача собранного клиента (production)
 const clientDist = path.resolve(__dirname, '../../client/dist');

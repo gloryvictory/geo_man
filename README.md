@@ -142,6 +142,7 @@ geo_man/
 | GET | `/api/connections/:id/modules` | статус модулей GeoServer (имя, версия, включён/доступен, сообщение) |
 | GET | `/api/connections/:id/fonts` | список шрифтов GeoServer |
 | GET | `/api/connections/:id/settings` | глобальные настройки GeoServer (контакт, JAI, coverage) + каталог данных |
+| POST | `/api/connections/:id/clone` | клонировать ресурсы (стили/рабочие области/группы слоёв) в другое подключение |
 | GET | `/api/connections/:id/layers` | список слоёв (с деталями) |
 | GET | `/api/connections/:id/layers/analytics` | аналитика по слоям (проекция, хранилище, хост/порт/БД/схема/пользователь, нативный SRS) |
 | GET | `/api/connections/:id/layers/:name` | детали слоя |

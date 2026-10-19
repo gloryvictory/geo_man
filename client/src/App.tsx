@@ -7,6 +7,7 @@ import Styles from './pages/Styles';
 import Workspaces from './pages/Workspaces';
 import Stores from './pages/Stores';
 import LayerGroups from './pages/LayerGroups';
+import Clone from './pages/Clone';
 import LoginScreen from './components/LoginScreen';
 import { Loader } from './components/ui';
 import { useAuth } from './store/authStore';
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/layergroups" element={<LayerGroups />} />
           <Route path="/layers" element={<Layers />} />
           <Route path="/styles" element={<Styles />} />
+          <Route path="/clone" element={<Clone />} />
         </Routes>
       </div>
     </div>

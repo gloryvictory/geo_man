@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Plus, Power, Moon, Sun, User, ChevronDown, LogOut, ShieldCheck, Layers, Palette, Info, Box, Database, Boxes } from 'lucide-react';
+import { Plus, Power, Moon, Sun, User, ChevronDown, LogOut, ShieldCheck, Layers, Palette, Info, Box, Database, Boxes, Copy } from 'lucide-react';
 import { useStore } from '../store';
 import { getTheme, applyTheme, type Theme } from '../lib/theme';
 import { Button, Select, Modal } from './ui';
@@ -122,6 +122,7 @@ export default function Topbar() {
         {navItem('/layergroups', <Boxes size={14} />, 'Группы слоев')}
         {navItem('/layers', <Layers size={14} />, 'Слои')}
         {navItem('/styles', <Palette size={14} />, 'Стили')}
+        {navItem('/clone', <Copy size={14} />, 'Клонирование')}
       </nav>
 
       <Button

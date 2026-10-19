@@ -55,6 +55,8 @@ export const api = {
   workspaceDetail: (id: string, name: string) => http<WorkspaceDetail>(`/connections/${id}/workspaces/${enc(name)}`),
   stores: (id: string) => http<GeoStore[]>(`/connections/${id}/stores`),
   layergroups: (id: string) => http<GeoLayerGroup[]>(`/connections/${id}/layergroups`),
+  clone: (sourceId: string, body: { targetId: string; type: string; names: string[] }) =>
+    http<{ results: { name: string; ok: boolean; error?: string }[] }>(`/connections/${sourceId}/clone`, { method: 'POST', body: JSON.stringify(body) }),
   stylesExportUrl: (id: string) => `${BASE}/connections/${id}/styles/export`,
   stylesLegendUrl: (id: string, name: string, width?: number, height?: number) => {
     let url = `${BASE}/connections/${id}/styles/${enc(name)}/legend`;
