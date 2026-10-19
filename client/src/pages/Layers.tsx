@@ -3,27 +3,41 @@ import toast from 'react-hot-toast';
 import { RefreshCw, FileDown } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import { Loader, Modal, Input, Button, Info } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Select } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
 import type { LayerDetail } from '../types';
 
 export default function Layers() {
   const { activeConnId, connected, layers, loadingLayers, fetchLayers } = useStore();
   const [q, setQ] = useState('');
+  const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<LayerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const workspaceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of layers) if (l.workspace) set.add(l.workspace);
+    return [
+      { value: '', label: 'Все' },
+      ...Array.from(set).sort().map((w) => ({ value: w, label: w })),
+    ];
+  }, [layers]);
+
   const filtered = useMemo(() => {
+    let list = layers;
+    if (wsFilter) list = list.filter((l) => l.workspace === wsFilter);
     const s = q.trim().toLowerCase();
-    if (!s) return layers;
-    return layers.filter(
-      (l) =>
-        l.name.toLowerCase().includes(s) ||
-        l.workspace.toLowerCase().includes(s) ||
-        (l.type ?? '').toLowerCase().includes(s) ||
-        (l.defaultStyle ?? '').toLowerCase().includes(s)
-    );
-  }, [layers, q]);
+    if (s) {
+      list = list.filter(
+        (l) =>
+          l.name.toLowerCase().includes(s) ||
+          l.workspace.toLowerCase().includes(s) ||
+          (l.type ?? '').toLowerCase().includes(s) ||
+          (l.defaultStyle ?? '').toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [layers, q, wsFilter]);
 
   async function openDetail(name: string) {
     if (!activeConnId) return;
@@ -56,6 +70,7 @@ export default function Layers() {
     <div className="flex h-full flex-col p-4">
       <div className="mb-3 flex items-center gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск слоёв…" className="max-w-[320px]" />
+        <Select value={wsFilter} onChange={(v) => setWsFilter(v ?? '')} options={workspaceOptions} width={180} />
         <Button variant="subtle" onClick={() => fetchLayers()}>
           <RefreshCw size={13} />
           Обновить

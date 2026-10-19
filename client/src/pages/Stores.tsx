@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, FileDown } from 'lucide-react';
 import { useStore } from '../store';
-import { Loader, Modal, Input, Button, Info } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Select } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
 import type { GeoStore } from '../types';
 
@@ -10,18 +10,32 @@ const STORE_KIND_LABEL: Record<string, string> = { data: 'Данные', coverag
 export default function Stores() {
   const { activeConnId, connected, stores, loadingStores, fetchStores } = useStore();
   const [q, setQ] = useState('');
+  const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoStore | null>(null);
 
+  const workspaceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const s of stores) if (s.workspace) set.add(s.workspace);
+    return [
+      { value: '', label: 'Все' },
+      ...Array.from(set).sort().map((w) => ({ value: w, label: w })),
+    ];
+  }, [stores]);
+
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    if (!s) return stores;
-    return stores.filter(
-      (st) =>
-        st.name.toLowerCase().includes(s) ||
-        st.workspace.toLowerCase().includes(s) ||
-        (st.type ?? '').toLowerCase().includes(s)
-    );
-  }, [stores, q]);
+    let list = stores;
+    if (wsFilter) list = list.filter((s) => s.workspace === wsFilter);
+    const qs = q.trim().toLowerCase();
+    if (qs) {
+      list = list.filter(
+        (st) =>
+          st.name.toLowerCase().includes(qs) ||
+          st.workspace.toLowerCase().includes(qs) ||
+          (st.type ?? '').toLowerCase().includes(qs)
+      );
+    }
+    return list;
+  }, [stores, q, wsFilter]);
 
   function doExport(format: 'xlsx' | 'csv') {
     const header = ['Имя', 'Рабочая область', 'Вид', 'Формат', 'Включено'];
@@ -47,6 +61,7 @@ export default function Stores() {
     <div className="flex h-full flex-col p-4">
       <div className="mb-3 flex items-center gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск хранилищ…" className="max-w-[320px]" />
+        <Select value={wsFilter} onChange={(v) => setWsFilter(v ?? '')} options={workspaceOptions} width={180} />
         <Button variant="subtle" onClick={() => fetchStores()}>
           <RefreshCw size={13} />
           Обновить

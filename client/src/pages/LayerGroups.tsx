@@ -1,25 +1,41 @@
 import { useMemo, useState } from 'react';
 import { RefreshCw, FileDown } from 'lucide-react';
 import { useStore } from '../store';
-import { Loader, Modal, Input, Button, Info } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Select } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
 import type { GeoLayerGroup } from '../types';
 
 export default function LayerGroups() {
   const { activeConnId, connected, layergroups, loadingLayergroups, fetchLayergroups } = useStore();
   const [q, setQ] = useState('');
+  const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoLayerGroup | null>(null);
 
+  const workspaceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of layergroups) if (g.workspace) set.add(g.workspace);
+    return [
+      { value: '', label: 'Все' },
+      { value: '__global__', label: 'Глобальные' },
+      ...Array.from(set).sort().map((w) => ({ value: w, label: w })),
+    ];
+  }, [layergroups]);
+
   const filtered = useMemo(() => {
+    let list = layergroups;
+    if (wsFilter === '__global__') list = list.filter((g) => !g.workspace);
+    else if (wsFilter) list = list.filter((g) => g.workspace === wsFilter);
     const s = q.trim().toLowerCase();
-    if (!s) return layergroups;
-    return layergroups.filter(
-      (g) =>
-        g.name.toLowerCase().includes(s) ||
-        (g.workspace ?? '').toLowerCase().includes(s) ||
-        (g.mode ?? '').toLowerCase().includes(s)
-    );
-  }, [layergroups, q]);
+    if (s) {
+      list = list.filter(
+        (g) =>
+          g.name.toLowerCase().includes(s) ||
+          (g.workspace ?? '').toLowerCase().includes(s) ||
+          (g.mode ?? '').toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [layergroups, q, wsFilter]);
 
   function doExport(format: 'xlsx' | 'csv') {
     const header = ['Имя', 'Рабочая область', 'Режим', 'Слоёв'];
@@ -39,6 +55,7 @@ export default function LayerGroups() {
     <div className="flex h-full flex-col p-4">
       <div className="mb-3 flex items-center gap-2">
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск групп слоёв…" className="max-w-[320px]" />
+        <Select value={wsFilter} onChange={(v) => setWsFilter(v ?? '')} options={workspaceOptions} width={180} />
         <Button variant="subtle" onClick={() => fetchLayergroups()}>
           <RefreshCw size={13} />
           Обновить
