@@ -30,6 +30,7 @@ export default function Layers() {
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
   const [aq, setAq] = useState('');
+  const [awsFilter, setAwsFilter] = useState('');
   const [analytics, setAnalytics] = useState<LayerAnalyticsRow[] | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [detail, setDetail] = useState<LayerDetail | null>(null);
@@ -60,8 +61,18 @@ export default function Layers() {
     return list;
   }, [layers, q, wsFilter]);
 
+  const analyticsWorkspaceOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of analytics ?? []) if (r.w_name) set.add(r.w_name);
+    return [
+      { value: '', label: 'Все' },
+      ...Array.from(set).sort().map((w) => ({ value: w, label: w })),
+    ];
+  }, [analytics]);
+
   const filteredAnalytics = useMemo(() => {
-    const list = analytics ?? [];
+    let list = analytics ?? [];
+    if (awsFilter) list = list.filter((r) => r.w_name === awsFilter);
     const s = aq.trim().toLowerCase();
     if (!s) return list;
     return list.filter(
@@ -72,7 +83,7 @@ export default function Layers() {
         r.s_host.toLowerCase().includes(s) ||
         r.s_database.toLowerCase().includes(s)
     );
-  }, [analytics, aq]);
+  }, [analytics, aq, awsFilter]);
 
   async function loadAnalytics(force = false) {
     if (!activeConnId) return;
@@ -208,6 +219,7 @@ export default function Layers() {
         <div className="flex min-h-0 flex-1 flex-col pt-3">
           <div className="mb-3 flex items-center gap-2">
             <Input value={aq} onChange={(e) => setAq(e.target.value)} placeholder="Поиск по слою/хранилищу/хосту…" className="max-w-[320px]" />
+            <Select value={awsFilter} onChange={(v) => setAwsFilter(v ?? '')} options={analyticsWorkspaceOptions} width={180} />
             <Button variant="subtle" onClick={() => loadAnalytics(true)}>
               <RefreshCw size={13} />
               Обновить
