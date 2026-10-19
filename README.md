@@ -138,6 +138,7 @@ geo_man/
 | DELETE | `/api/connections/:id` | удалить подключение |
 | POST | `/api/connections/:id/test` | проверить доступность |
 | GET | `/api/connections/:id/info` | общая информация о GeoServer |
+| GET | `/api/connections/:id/manifest` | манифест GeoServer (список модулей/библиотек с версиями) |
 | GET | `/api/connections/:id/layers` | список слоёв (с деталями) |
 | GET | `/api/connections/:id/layers/analytics` | аналитика по слоям (проекция, хранилище, хост/порт/БД/схема/пользователь, нативный SRS) |
 | GET | `/api/connections/:id/layers/:name` | детали слоя |

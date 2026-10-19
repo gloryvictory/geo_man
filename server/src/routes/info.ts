@@ -53,4 +53,40 @@ r.get('/:id/info', async (req, res, next) => {
   }
 });
 
+interface ManifestResource {
+  '@name'?: string;
+  'Implementation-Title'?: string;
+  'Bundle-Name'?: string;
+  'Implementation-Version'?: string | number;
+  'Specification-Version'?: string | number;
+  'Bundle-Version'?: string | number;
+}
+
+function str(v: unknown): string {
+  if (v == null) return '';
+  return String(v);
+}
+
+r.get('/:id/manifest', async (req, res, next) => {
+  try {
+    const conn = getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+
+    const manifest = await gsJson<{ about?: { resource?: ManifestResource[] | ManifestResource } }>(cfg, '/about/manifest.json');
+    const resources = asArray(manifest?.about?.resource);
+    const entries = resources
+      .map((r) => ({
+        name: r['@name'] ?? '?',
+        title: r['Implementation-Title'] ?? r['Bundle-Name'] ?? '',
+        version: str(r['Implementation-Version']) || str(r['Specification-Version']) || str(r['Bundle-Version']),
+      }))
+      .sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
+
+    res.json(entries);
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default r;

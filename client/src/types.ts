@@ -117,3 +117,9 @@ export interface LayerAnalyticsRow {
   s_dbtype: string;
   s_native_srs: string;
 }
+
+export interface ManifestEntry {
+  name: string;
+  title: string;
+  version: string;
+}
