@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { RefreshCw, FileDown, Download, Archive } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import { Loader, Modal, Input, Button, Info, Tabs, Select } from '../components/ui';
+import { Loader, Modal, Input, Button, Info, Select } from '../components/ui';
 import { exportToExcel, exportToCsv, downloadText, downloadBlob } from '../lib/export';
 import type { GeoStyleDetail } from '../types';
 
@@ -17,7 +17,6 @@ export default function Styles() {
   const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoStyleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [tab, setTab] = useState<'sld' | 'legend'>('sld');
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
 
   const workspaceOptions = useMemo(() => {
@@ -62,7 +61,6 @@ export default function Styles() {
     if (!activeConnId) return;
     setDetailLoading(true);
     setDetail(null);
-    setTab('sld');
     try {
       setDetail(await api.styleDetail(activeConnId, name));
     } catch (e) {
@@ -91,6 +89,19 @@ export default function Styles() {
       const blob = await res.blob();
       downloadBlob(blob, 'geo_man_styles.zip');
       toast.success('Все стили скачаны');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка скачивания');
+    }
+  }
+
+  async function downloadLegend() {
+    if (!activeConnId || !detail) return;
+    try {
+      const res = await fetch(api.stylesLegendUrl(activeConnId, qualifiedName(detail)), { credentials: 'include' });
+      if (!res.ok) throw new Error('Ошибка скачивания');
+      const blob = await res.blob();
+      downloadBlob(blob, `${detail.name}_legend.png`);
+      toast.success('Легенда скачана');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Ошибка скачивания');
     }
@@ -215,7 +226,7 @@ export default function Styles() {
         </div>
       )}
 
-      <Modal open={!!detail || detailLoading} onClose={() => setDetail(null)} title={detail?.name ?? 'Стиль'} width={760}>
+      <Modal open={!!detail || detailLoading} onClose={() => setDetail(null)} title={detail?.name ?? 'Стиль'} width={1050}>
         {detailLoading ? (
           <div className="grid place-items-center py-8">
             <Loader size={24} />
@@ -228,33 +239,38 @@ export default function Styles() {
               <Info label="Рабочая область" value={detail.workspace ?? '—'} mono />
               <Info label="Файл" value={detail.filename || '—'} mono />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="light" onClick={() => downloadStyle(qualifiedName(detail))}>
-                <Download size={14} />
-                Скачать
-              </Button>
-            </div>
-            <Tabs
-              value={tab}
-              onChange={(v) => setTab(v as 'sld' | 'legend')}
-              items={[
-                { value: 'sld', label: 'SLD' },
-                { value: 'legend', label: 'Легенда' },
-              ]}
-            />
-            {tab === 'sld' ? (
-              <pre className="max-h-[50vh] overflow-auto rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-3 font-mono text-[11.5px] leading-relaxed text-[var(--text)]">
-                {detail.sld || '(пусто)'}
-              </pre>
-            ) : (
-              <div className="flex min-h-[140px] items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-4">
-                <img
-                  src={api.stylesLegendUrl(activeConnId!, qualifiedName(detail))}
-                  alt="Легенда"
-                  className="max-h-[45vh] max-w-full"
-                />
+
+            <div className="grid grid-cols-[minmax(0,1fr)_300px] gap-3">
+              <div className="flex min-w-0 flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">SLD</span>
+                  <Button variant="light" onClick={() => downloadStyle(qualifiedName(detail))}>
+                    <Download size={14} />
+                    Скачать
+                  </Button>
+                </div>
+                <pre className="max-h-[55vh] overflow-auto rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-3 font-mono text-[11.5px] leading-relaxed text-[var(--text)]">
+                  {detail.sld || '(пусто)'}
+                </pre>
               </div>
-            )}
+
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--faint)]">Легенда</span>
+                  <Button variant="light" onClick={downloadLegend}>
+                    <Download size={14} />
+                    Экспорт
+                  </Button>
+                </div>
+                <div className="flex max-h-[55vh] flex-1 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg-panel)] p-3">
+                  <img
+                    src={api.stylesLegendUrl(activeConnId!, qualifiedName(detail))}
+                    alt="Легенда"
+                    className="max-h-[50vh] max-w-full"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
       </Modal>
