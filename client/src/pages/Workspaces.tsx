@@ -33,8 +33,15 @@ export default function Workspaces() {
   }
 
   function doExport(format: 'xlsx' | 'csv') {
-    const header = ['Имя', 'Изолированная', 'Дата создания', 'Дата изменения'];
-    const rows = filtered.map((w) => [w.name, w.isolated ? 'да' : 'нет', w.dateCreated ?? '', w.dateModified ?? '']);
+    const header = ['Имя', 'По умолчанию', 'Изолированная', 'Хранилищ', 'Дата создания', 'Дата изменения'];
+    const rows = filtered.map((w) => [
+      w.name,
+      w.isDefault ? 'да' : 'нет',
+      w.isolated ? 'да' : 'нет',
+      String(w.storeCount),
+      w.dateCreated ?? '',
+      w.dateModified ?? '',
+    ]);
     if (format === 'xlsx') exportToExcel('geo_man_workspaces', header, rows);
     else exportToCsv('geo_man_workspaces', header, rows);
   }
@@ -76,7 +83,9 @@ export default function Workspaces() {
             <thead className="sticky top-0 bg-[var(--bg-raised)]">
               <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--faint)]">
                 <th className="px-3 py-2 font-medium">Имя</th>
+                <th className="px-3 py-2 font-medium">По умолчанию</th>
                 <th className="px-3 py-2 font-medium">Изолированная</th>
+                <th className="px-3 py-2 font-medium">Хранилищ</th>
                 <th className="px-3 py-2 font-medium">Дата создания</th>
                 <th className="px-3 py-2 font-medium">Дата изменения</th>
               </tr>
@@ -84,7 +93,7 @@ export default function Workspaces() {
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-[var(--faint)]">
+                  <td colSpan={6} className="px-3 py-6 text-center text-[var(--faint)]">
                     Рабочие области не найдены
                   </td>
                 </tr>
@@ -97,8 +106,12 @@ export default function Workspaces() {
                 >
                   <td className="px-3 py-1.5 font-mono text-[var(--text)]">{w.name}</td>
                   <td className="px-3 py-1.5">
+                    <span className={`badge ${w.isDefault ? 'pk' : 'kind'}`}>{w.isDefault ? 'да' : 'нет'}</span>
+                  </td>
+                  <td className="px-3 py-1.5">
                     <span className={`badge ${w.isolated ? 'pk' : 'kind'}`}>{w.isolated ? 'да' : 'нет'}</span>
                   </td>
+                  <td className="px-3 py-1.5 text-right font-mono text-[var(--muted)]">{w.storeCount}</td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{w.dateCreated ?? '—'}</td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{w.dateModified ?? '—'}</td>
                 </tr>
@@ -117,7 +130,9 @@ export default function Workspaces() {
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
               <Info label="Имя" value={detail.name} mono />
+              <Info label="По умолчанию" value={detail.isDefault ? 'да' : 'нет'} mono />
               <Info label="Изолированная" value={detail.isolated ? 'да' : 'нет'} mono />
+              <Info label="Хранилищ" value={String(detail.storeCount)} mono />
               <Info label="Дата создания" value={detail.dateCreated ?? '—'} mono />
               <Info label="Дата изменения" value={detail.dateModified ?? '—'} mono />
             </div>

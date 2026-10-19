@@ -24,22 +24,50 @@ function parseWorkspace(name: string, href: string, w: any) {
   };
 }
 
+const STORE_KINDS = [
+  { path: 'datastores', listKey: 'dataStores', itemKey: 'dataStore' },
+  { path: 'coveragestores', listKey: 'coverageStores', itemKey: 'coverageStore' },
+  { path: 'wmsstores', listKey: 'wmsStores', itemKey: 'wmsStore' },
+];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function countStores(cfg: GeoServerConfig, wsName: string): Promise<number> {
+  let total = 0;
+  await Promise.all(
+    STORE_KINDS.map(async (k) => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const d = await gsJson<any>(cfg, `/workspaces/${encodeURIComponent(wsName)}/${k.path}.json`);
+        total += asArray<{ name: string }>(d?.[k.listKey]?.[k.itemKey]).length;
+      } catch {
+        /* пропускаем тип хранилища */
+      }
+    })
+  );
+  return total;
+}
+
 r.get('/:id/workspaces', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
     const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
 
-    const list = await gsJson<{ workspaces?: { workspace?: WsEntry[] | WsEntry } }>(cfg, '/workspaces.json');
+    const [list, def] = await Promise.all([
+      gsJson<{ workspaces?: { workspace?: WsEntry[] | WsEntry } }>(cfg, '/workspaces.json'),
+      gsJson<{ workspace?: { name?: string } }>(cfg, '/workspaces/default.json').catch(() => null),
+    ]);
+    const defaultName = def?.workspace?.name ?? '';
     const entries = asArray(list?.workspaces?.workspace);
 
     const workspaces = await mapLimit(entries, 8, async (e) => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const d = await gsJson<any>(cfg, `/workspaces/${encodeURIComponent(e.name)}.json`);
-        return parseWorkspace(e.name, e.href, d?.workspace);
+        const storeCount = await countStores(cfg, e.name);
+        return { ...parseWorkspace(e.name, e.href, d?.workspace), isDefault: e.name === defaultName, storeCount };
       } catch (err) {
-        return { name: e.name, isolated: false, dateCreated: null, dateModified: null, href: e.href, error: err instanceof Error ? err.message : 'Ошибка' };
+        return { name: e.name, isolated: false, dateCreated: null, dateModified: null, href: e.href, isDefault: e.name === defaultName, storeCount: 0, error: err instanceof Error ? err.message : 'Ошибка' };
       }
     });
 

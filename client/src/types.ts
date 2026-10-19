@@ -70,6 +70,8 @@ export interface GeoWorkspace {
   dateCreated: string | null;
   dateModified: string | null;
   href: string;
+  isDefault: boolean;
+  storeCount: number;
   error?: string;
 }
 
