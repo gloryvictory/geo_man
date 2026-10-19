@@ -39,13 +39,16 @@ function StatCard({
 export default function Overview() {
   const navigate = useNavigate();
   const { activeConnId, connected, connecting, info, layers, stores, layergroups, loadingInfo } = useStore();
-  const [tab, setTab] = useState<'info' | 'config' | 'modules'>('info');
+  const [tab, setTab] = useState<'info' | 'config' | 'modules' | 'fonts'>('info');
   const [q, setQ] = useState('');
   const [manifest, setManifest] = useState<ManifestEntry[] | null>(null);
   const [manifestLoading, setManifestLoading] = useState(false);
   const [modules, setModules] = useState<ModuleStatus[] | null>(null);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [mq, setMq] = useState('');
+  const [fonts, setFonts] = useState<string[] | null>(null);
+  const [fontsLoading, setFontsLoading] = useState(false);
+  const [fq, setFq] = useState('');
 
   const typeCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -80,6 +83,13 @@ export default function Overview() {
     );
   }, [modules, mq]);
 
+  const filteredFonts = useMemo(() => {
+    const list = fonts ?? [];
+    const s = fq.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter((f) => f.toLowerCase().includes(s));
+  }, [fonts, fq]);
+
   async function loadManifest(force = false) {
     if (!activeConnId) return;
     if (!force && (manifest !== null || manifestLoading)) return;
@@ -106,9 +116,23 @@ export default function Overview() {
     }
   }
 
+  async function loadFonts(force = false) {
+    if (!activeConnId) return;
+    if (!force && (fonts !== null || fontsLoading)) return;
+    setFontsLoading(true);
+    try {
+      setFonts(await api.fonts(activeConnId));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки шрифтов');
+    } finally {
+      setFontsLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (tab === 'config') loadManifest();
     if (tab === 'modules') loadModules();
+    if (tab === 'fonts') loadFonts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
@@ -132,6 +156,13 @@ export default function Overview() {
     ]);
     if (format === 'xlsx') exportToExcel('geo_man_modules', header, rows);
     else exportToCsv('geo_man_modules', header, rows);
+  }
+
+  function doExportFonts(format: 'xlsx' | 'csv') {
+    const header = ['Шрифт'];
+    const rows = filteredFonts.map((f) => [f]);
+    if (format === 'xlsx') exportToExcel('geo_man_fonts', header, rows);
+    else exportToCsv('geo_man_fonts', header, rows);
   }
 
   if (!activeConnId) {
@@ -162,11 +193,12 @@ export default function Overview() {
     <div className="flex h-full flex-col p-5">
       <Tabs
         value={tab}
-        onChange={(v) => setTab(v as 'info' | 'config' | 'modules')}
+        onChange={(v) => setTab(v as 'info' | 'config' | 'modules' | 'fonts')}
         items={[
           { value: 'info', label: 'Информация' },
           { value: 'config', label: 'Конфигурация' },
           { value: 'modules', label: 'Модули' },
+          { value: 'fonts', label: 'Шрифты' },
         ]}
       />
 
@@ -306,7 +338,7 @@ export default function Overview() {
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === 'modules' ? (
         <div className="flex min-h-0 flex-1 flex-col pt-4">
           <div className="mb-3 flex items-center gap-2">
             <Input value={mq} onChange={(e) => setMq(e.target.value)} placeholder="Поиск по имени/модулю/версии…" className="max-w-[320px]" />
@@ -367,6 +399,44 @@ export default function Overview() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col pt-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Input value={fq} onChange={(e) => setFq(e.target.value)} placeholder="Поиск шрифта…" className="max-w-[320px]" />
+            <Button variant="subtle" onClick={() => loadFonts(true)}>
+              <RefreshCw size={13} />
+              Обновить
+            </Button>
+            <div className="flex-1" />
+            <span className="text-[12px] text-[var(--faint)]">{filteredFonts.length} из {(fonts ?? []).length}</span>
+            <Button variant="subtle" onClick={() => doExportFonts('xlsx')}>
+              <FileDown size={13} />
+              Excel
+            </Button>
+            <Button variant="subtle" onClick={() => doExportFonts('csv')}>
+              <FileDown size={13} />
+              CSV
+            </Button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[var(--border)] p-3">
+            {fontsLoading || fonts === null ? (
+              <div className="grid h-full place-items-center">
+                <Loader size={24} />
+              </div>
+            ) : filteredFonts.length === 0 ? (
+              <div className="grid h-full place-items-center text-[var(--faint)]">Шрифты не найдены</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {filteredFonts.map((f, i) => (
+                  <div key={i} className="rounded-md border border-[var(--border)] bg-[var(--bg-panel)] px-3 py-1.5 font-mono text-[12px] text-[var(--text)]">
+                    {f}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         </div>

@@ -47,6 +47,7 @@ export const api = {
   layersAnalytics: (id: string) => http<LayerAnalyticsRow[]>(`/connections/${id}/layers/analytics`),
   manifest: (id: string) => http<ManifestEntry[]>(`/connections/${id}/manifest`),
   modules: (id: string) => http<ModuleStatus[]>(`/connections/${id}/modules`),
+  fonts: (id: string) => http<string[]>(`/connections/${id}/fonts`),
   styles: (id: string) => http<GeoStyle[]>(`/connections/${id}/styles`),
   styleDetail: (id: string, name: string) => http<GeoStyleDetail>(`/connections/${id}/styles/${enc(name)}`),
   workspaces: (id: string) => http<GeoWorkspace[]>(`/connections/${id}/workspaces`),

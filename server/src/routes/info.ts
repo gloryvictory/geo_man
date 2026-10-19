@@ -1,6 +1,7 @@
 import { Router } from 'express';
+import { TextDecoder } from 'node:util';
 import { getConnection, getSavedPassword } from '../sqlite';
-import { gsJson, gsText, asArray, type GeoServerConfig } from '../geoserver';
+import { gsJson, gsText, gsBuffer, asArray, type GeoServerConfig } from '../geoserver';
 
 const r = Router();
 
@@ -153,6 +154,29 @@ r.get('/:id/modules', async (req, res, next) => {
     const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
     const html = await gsText(cfg, '/about/status');
     res.json(parseModuleStatus(html));
+  } catch (e) {
+    next(e);
+  }
+});
+
+function decodeFontsText(buf: Buffer): string {
+  // GeoServer на Windows отдаёт /rest/fonts в кодировке локали (CP1251 для русской),
+  // на Linux — UTF-8. Пробуем строгий UTF-8, при неудаче — CP1251.
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder('windows-1251').decode(buf);
+  }
+}
+
+r.get('/:id/fonts', async (req, res, next) => {
+  try {
+    const conn = getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const buf = await gsBuffer(cfg, '/fonts');
+    const parsed = JSON.parse(decodeFontsText(buf)) as { fonts?: string[] };
+    res.json(parsed.fonts ?? []);
   } catch (e) {
     next(e);
   }

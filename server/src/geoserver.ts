@@ -70,6 +70,12 @@ export async function gsText(cfg: GeoServerConfig, path: string): Promise<string
   return res.text();
 }
 
+/** Сырые байты ответа (для нестандартных кодировок, напр. /fonts в CP1251). */
+export async function gsBuffer(cfg: GeoServerConfig, path: string): Promise<Buffer> {
+  const res = await gsFetch(cfg, path);
+  return Buffer.from(await res.arrayBuffer());
+}
+
 /** GeoServer отдаёт одиночный элемент без массива — всегда оборачивать. */
 export function asArray<T>(x: T | T[] | null | undefined): T[] {
   if (x == null) return [];
