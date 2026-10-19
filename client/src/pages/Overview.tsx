@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { Loader } from '../components/ui';
-import { Layers, Palette, Box, ChevronRight } from 'lucide-react';
+import { Layers, Palette, Box, ChevronRight, Database, Boxes } from 'lucide-react';
 
 function StatCard({
   icon,
@@ -34,7 +34,7 @@ function StatCard({
 
 export default function Overview() {
   const navigate = useNavigate();
-  const { activeConnId, connected, connecting, info, layers, loadingInfo } = useStore();
+  const { activeConnId, connected, connecting, info, layers, stores, layergroups, loadingInfo } = useStore();
 
   const typeCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -79,12 +79,24 @@ export default function Overview() {
         {info.buildTimestamp && <span className="text-[12px] text-[var(--muted)]">сборка {info.buildTimestamp}</span>}
       </div>
 
-      <div className="mb-5 grid grid-cols-3 gap-3">
+      <div className="mb-5 grid grid-cols-5 gap-3">
         <StatCard
           icon={<Box size={18} />}
           label="Рабочие области"
           value={info.workspaceCount}
           onClick={() => navigate('/workspaces')}
+        />
+        <StatCard
+          icon={<Database size={18} />}
+          label="Хранилища"
+          value={stores.length}
+          onClick={() => navigate('/stores')}
+        />
+        <StatCard
+          icon={<Boxes size={18} />}
+          label="Группы слоев"
+          value={layergroups.length}
+          onClick={() => navigate('/layergroups')}
         />
         <StatCard
           icon={<Layers size={18} />}
