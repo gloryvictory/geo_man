@@ -91,7 +91,7 @@ export default function Overview() {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
+        <div className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
           <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Модули</h2>
           <table className="w-full text-[12.5px]">
             <tbody>
@@ -109,18 +109,6 @@ export default function Overview() {
               <span className="font-mono">{info.gitRevision}</span>
             </div>
           )}
-        </div>
-
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
-          <h2 className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Рабочие области</h2>
-          <div className="flex flex-wrap gap-1.5">
-            {info.workspaces.length === 0 && <span className="text-[12px] text-[var(--faint)]">Нет рабочих областей</span>}
-            {info.workspaces.map((w) => (
-              <span key={w} className="rounded bg-[var(--surface-elevated)] px-2 py-1 font-mono text-[12px] text-[var(--text)]">
-                {w}
-              </span>
-            ))}
-          </div>
         </div>
 
         <div className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
