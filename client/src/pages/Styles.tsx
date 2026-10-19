@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { RefreshCw, FileDown, Download, Archive } from 'lucide-react';
 import { useStore } from '../store';
@@ -17,6 +17,7 @@ export default function Styles() {
   const [detail, setDetail] = useState<GeoStyleDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [tab, setTab] = useState<'sld' | 'legend'>('sld');
+  const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -28,6 +29,18 @@ export default function Styles() {
         st.format.toLowerCase().includes(s)
     );
   }, [styles, q]);
+
+  useEffect(() => {
+    function close() {
+      setMenu(null);
+    }
+    document.addEventListener('mousedown', close);
+    document.addEventListener('wheel', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('wheel', close);
+    };
+  }, []);
 
   async function openDetail(name: string) {
     if (!activeConnId) return;
@@ -135,6 +148,10 @@ export default function Styles() {
                   key={qualifiedName(s)}
                   className="cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
                   onClick={() => openDetail(qualifiedName(s))}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setMenu({ x: e.clientX, y: e.clientY, name: qualifiedName(s) });
+                  }}
                 >
                   <td className="px-3 py-1.5 font-mono text-[var(--text)]">{s.name}</td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.workspace ?? '—'}</td>
@@ -161,6 +178,25 @@ export default function Styles() {
           </table>
         )}
       </div>
+
+      {menu && (
+        <div
+          className="fixed z-[100] min-w-[180px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-1 shadow-lg"
+          style={{ left: menu.x, top: menu.y }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[12.5px] text-[var(--text)] hover:bg-[var(--surface-hover)]"
+            onClick={() => {
+              downloadStyle(menu.name);
+              setMenu(null);
+            }}
+          >
+            <Download size={13} className="text-[var(--muted)]" />
+            Скачать
+          </button>
+        </div>
+      )}
 
       <Modal open={!!detail || detailLoading} onClose={() => setDetail(null)} title={detail?.name ?? 'Стиль'} width={760}>
         {detailLoading ? (
