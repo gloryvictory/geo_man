@@ -80,7 +80,7 @@ export default function LayerGroups() {
               )}
               {filtered.map((g) => (
                 <tr
-                  key={g.name}
+                  key={g.workspace ? `${g.workspace}:${g.name}` : g.name}
                   className="cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
                   onClick={() => setDetail(g)}
                 >
