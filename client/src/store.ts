@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import toast from 'react-hot-toast';
 import { api } from './api';
-import type { StoredConnection, GeoInfo, GeoLayer, GeoStyle, GeoWorkspace } from './types';
+import type { StoredConnection, GeoInfo, GeoLayer, GeoStyle, GeoWorkspace, GeoStore, GeoLayerGroup } from './types';
 
 export interface GeoState {
   connections: StoredConnection[];
@@ -13,10 +13,14 @@ export interface GeoState {
   layers: GeoLayer[];
   styles: GeoStyle[];
   workspaces: GeoWorkspace[];
+  stores: GeoStore[];
+  layergroups: GeoLayerGroup[];
   loadingInfo: boolean;
   loadingLayers: boolean;
   loadingStyles: boolean;
   loadingWorkspaces: boolean;
+  loadingStores: boolean;
+  loadingLayergroups: boolean;
 
   loadConnections: () => Promise<void>;
   setActiveConn: (id: string | null) => void;
@@ -35,6 +39,8 @@ export interface GeoState {
   fetchLayers: () => Promise<void>;
   fetchStyles: () => Promise<void>;
   fetchWorkspaces: () => Promise<void>;
+  fetchStores: () => Promise<void>;
+  fetchLayergroups: () => Promise<void>;
   reset: () => void;
 }
 
@@ -47,10 +53,14 @@ export const useStore = create<GeoState>((set, get) => ({
   layers: [],
   styles: [],
   workspaces: [],
+  stores: [],
+  layergroups: [],
   loadingInfo: false,
   loadingLayers: false,
   loadingStyles: false,
   loadingWorkspaces: false,
+  loadingStores: false,
+  loadingLayergroups: false,
 
   loadConnections: async () => {
     const conns = await api.listConnections();
@@ -58,16 +68,16 @@ export const useStore = create<GeoState>((set, get) => ({
   },
 
   setActiveConn: (id) =>
-    set({ activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [] }),
+    set({ activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [], stores: [], layergroups: [] }),
 
   connect: async (id) => {
-    set({ connecting: true, activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [] });
+    set({ connecting: true, activeConnId: id, connected: false, info: null, layers: [], styles: [], workspaces: [], stores: [], layergroups: [] });
     try {
       const r = await api.testConnection(id);
       if (r.connected) {
         set({ connected: true, connecting: false });
         localStorage.setItem('geoman-last-conn', id);
-        await Promise.allSettled([get().fetchInfo(), get().fetchLayers(), get().fetchStyles(), get().fetchWorkspaces()]);
+        await Promise.allSettled([get().fetchInfo(), get().fetchLayers(), get().fetchStyles(), get().fetchWorkspaces(), get().fetchStores(), get().fetchLayergroups()]);
         return true;
       }
       set({ connecting: false });
@@ -81,7 +91,7 @@ export const useStore = create<GeoState>((set, get) => ({
   },
 
   disconnect: () =>
-    set({ connected: false, info: null, layers: [], styles: [], workspaces: [] }),
+    set({ connected: false, info: null, layers: [], styles: [], workspaces: [], stores: [], layergroups: [] }),
 
   addConnection: async (data) => {
     try {
@@ -161,6 +171,32 @@ export const useStore = create<GeoState>((set, get) => ({
     }
   },
 
+  fetchStores: async () => {
+    const id = get().activeConnId;
+    if (!id) return;
+    set({ loadingStores: true });
+    try {
+      const stores = await api.stores(id);
+      set({ stores, loadingStores: false });
+    } catch (e) {
+      set({ loadingStores: false });
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки хранилищ');
+    }
+  },
+
+  fetchLayergroups: async () => {
+    const id = get().activeConnId;
+    if (!id) return;
+    set({ loadingLayergroups: true });
+    try {
+      const layergroups = await api.layergroups(id);
+      set({ layergroups, loadingLayergroups: false });
+    } catch (e) {
+      set({ loadingLayergroups: false });
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки групп слоёв');
+    }
+  },
+
   reset: () =>
     set({
       connections: [],
@@ -171,9 +207,13 @@ export const useStore = create<GeoState>((set, get) => ({
       layers: [],
       styles: [],
       workspaces: [],
+      stores: [],
+      layergroups: [],
       loadingInfo: false,
       loadingLayers: false,
       loadingStyles: false,
       loadingWorkspaces: false,
+      loadingStores: false,
+      loadingLayergroups: false,
     }),
 }));

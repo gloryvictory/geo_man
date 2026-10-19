@@ -5,6 +5,8 @@ import Overview from './pages/Overview';
 import Layers from './pages/Layers';
 import Styles from './pages/Styles';
 import Workspaces from './pages/Workspaces';
+import Stores from './pages/Stores';
+import LayerGroups from './pages/LayerGroups';
 import LoginScreen from './components/LoginScreen';
 import { Loader } from './components/ui';
 import { useAuth } from './store/authStore';
@@ -36,6 +38,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Overview />} />
           <Route path="/workspaces" element={<Workspaces />} />
+          <Route path="/stores" element={<Stores />} />
+          <Route path="/layergroups" element={<LayerGroups />} />
           <Route path="/layers" element={<Layers />} />
           <Route path="/styles" element={<Styles />} />
         </Routes>

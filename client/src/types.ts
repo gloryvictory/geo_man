@@ -75,3 +75,28 @@ export interface GeoWorkspace {
 export interface WorkspaceDetail extends GeoWorkspace {
   dataStores: string[];
 }
+
+export interface GeoStore {
+  name: string;
+  workspace: string;
+  storeType: 'data' | 'coverage' | 'wms';
+  type: string | null;
+  enabled: boolean;
+  description: string | null;
+  dateCreated: string | null;
+  dateModified: string | null;
+  href: string;
+  error?: string;
+}
+
+export interface GeoLayerGroup {
+  name: string;
+  workspace: string | null;
+  mode: string | null;
+  title: string | null;
+  layers: string[];
+  styles: string[];
+  layerCount: number;
+  href: string;
+  error?: string;
+}

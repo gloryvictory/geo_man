@@ -9,6 +9,8 @@ import infoRouter from './routes/info';
 import layersRouter from './routes/layers';
 import stylesRouter from './routes/styles';
 import workspacesRouter from './routes/workspaces';
+import storesRouter from './routes/stores';
+import layergroupsRouter from './routes/layergroups';
 import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import { requireAuth } from './auth';
@@ -42,6 +44,8 @@ app.use('/api/connections', infoRouter);
 app.use('/api/connections', layersRouter);
 app.use('/api/connections', stylesRouter);
 app.use('/api/connections', workspacesRouter);
+app.use('/api/connections', storesRouter);
+app.use('/api/connections', layergroupsRouter);
 
 // раздача собранного клиента (production)
 const clientDist = path.resolve(__dirname, '../../client/dist');
