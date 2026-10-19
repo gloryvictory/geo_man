@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { RefreshCw, FileDown, Download } from 'lucide-react';
+import { RefreshCw, FileDown, Download, Archive } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Modal, Input, Button, Info } from '../components/ui';
-import { exportToExcel, exportToCsv, downloadText } from '../lib/export';
+import { exportToExcel, exportToCsv, downloadText, downloadBlob } from '../lib/export';
 import type { GeoStyleDetail } from '../types';
+
+function qualifiedName(s: { name: string; workspace: string | null }): string {
+  return s.workspace ? `${s.workspace}:${s.name}` : s.name;
+}
 
 export default function Styles() {
   const { activeConnId, connected, styles, loadingStyles, fetchStyles } = useStore();
@@ -48,6 +52,19 @@ export default function Styles() {
     }
   }
 
+  async function downloadAll() {
+    if (!activeConnId) return;
+    try {
+      const res = await fetch(api.stylesExportUrl(activeConnId), { credentials: 'include' });
+      if (!res.ok) throw new Error('Ошибка скачивания');
+      const blob = await res.blob();
+      downloadBlob(blob, 'geo_man_styles.zip');
+      toast.success('Все стили скачаны');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка скачивания');
+    }
+  }
+
   function doExport(format: 'xlsx' | 'csv') {
     const header = ['Стиль', 'Рабочая область', 'Формат', 'Версия', 'Файл'];
     const rows = filtered.map((s) => [s.name, s.workspace ?? '', s.format, s.version, s.filename]);
@@ -69,6 +86,10 @@ export default function Styles() {
         <Button variant="subtle" onClick={() => fetchStyles()}>
           <RefreshCw size={13} />
           Обновить
+        </Button>
+        <Button variant="light" onClick={downloadAll}>
+          <Archive size={14} />
+          Скачать все стили
         </Button>
         <div className="flex-1" />
         <span className="text-[12px] text-[var(--faint)]">{filtered.length} из {styles.length}</span>
@@ -109,9 +130,9 @@ export default function Styles() {
               )}
               {filtered.map((s) => (
                 <tr
-                  key={s.name}
+                  key={qualifiedName(s)}
                   className="cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
-                  onClick={() => openDetail(s.name)}
+                  onClick={() => openDetail(qualifiedName(s))}
                 >
                   <td className="px-3 py-1.5 font-mono text-[var(--text)]">{s.name}</td>
                   <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{s.workspace ?? '—'}</td>
@@ -126,7 +147,7 @@ export default function Styles() {
                       title="Скачать стиль"
                       onClick={(e) => {
                         e.stopPropagation();
-                        downloadStyle(s.name);
+                        downloadStyle(qualifiedName(s));
                       }}
                     >
                       <Download size={14} />

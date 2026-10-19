@@ -48,6 +48,7 @@ export const api = {
   styleDetail: (id: string, name: string) => http<GeoStyleDetail>(`/connections/${id}/styles/${enc(name)}`),
   workspaces: (id: string) => http<GeoWorkspace[]>(`/connections/${id}/workspaces`),
   workspaceDetail: (id: string, name: string) => http<WorkspaceDetail>(`/connections/${id}/workspaces/${enc(name)}`),
+  stylesExportUrl: (id: string) => `${BASE}/connections/${id}/styles/export`,
 
   // аутентификация
   login: (login: string, password: string) =>
