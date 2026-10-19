@@ -190,4 +190,50 @@ r.get('/:id/fonts', async (req, res, next) => {
   }
 });
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function scalarMap(o: any): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!o || typeof o !== 'object') return out;
+  for (const [k, v] of Object.entries(o)) {
+    if (v == null || typeof v === 'object') continue;
+    out[k] = String(v);
+  }
+  return out;
+}
+
+r.get('/:id/settings', async (req, res, next) => {
+  try {
+    const conn = getConnection(req.params.id);
+    if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [raw, dataDirectory] = await Promise.all([
+      gsJson<any>(cfg, '/settings.json'),
+      gsDataDirectory(cfg).catch(() => ''),
+    ]);
+
+    const g = raw?.global ?? {};
+    const s = g.settings ?? {};
+    const settings: Record<string, string> = {
+      ...scalarMap(s),
+      updateSequence: g.updateSequence != null ? String(g.updateSequence) : '',
+      featureTypeCacheSize: g.featureTypeCacheSize != null ? String(g.featureTypeCacheSize) : '',
+      globalServices: g.globalServices != null ? String(g.globalServices) : '',
+      xmlPostRequestLogBufferSize: g.xmlPostRequestLogBufferSize != null ? String(g.xmlPostRequestLogBufferSize) : '',
+      webUIMode: g.webUIMode != null ? String(g.webUIMode) : '',
+    };
+
+    res.json({
+      dataDirectory,
+      settings,
+      contact: scalarMap(s.contact),
+      jai: scalarMap(g.jai),
+      coverageAccess: scalarMap(g.coverageAccess),
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default r;

@@ -134,3 +134,11 @@ export interface ModuleStatus {
   available: boolean;
   message: string;
 }
+
+export interface GeoServerSettings {
+  dataDirectory: string;
+  settings: Record<string, string>;
+  contact: Record<string, string>;
+  jai: Record<string, string>;
+  coverageAccess: Record<string, string>;
+}

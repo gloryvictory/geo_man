@@ -6,7 +6,68 @@ import { api } from '../api';
 import { Loader, Tabs, Input, Button } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
 import { Layers, Palette, Box, ChevronRight, Database, Boxes, RefreshCw, FileDown } from 'lucide-react';
-import type { ManifestEntry, ModuleStatus } from '../types';
+import type { ManifestEntry, ModuleStatus, GeoServerSettings } from '../types';
+
+const CONFIG_LABELS: Record<string, string> = {
+  charset: 'Кодировка',
+  numDecimals: 'Десятичных знаков',
+  onlineResource: 'OnlineResource',
+  verbose: 'Подробный лог',
+  verboseExceptions: 'Подробные исключения',
+  webUIMode: 'Режим веб-интерфейса',
+  globalServices: 'Глобальные сервисы',
+  updateSequence: 'Последовательность',
+  featureTypeCacheSize: 'Кэш типов объектов',
+  xmlPostRequestLogBufferSize: 'Буфер XML-запросов',
+  contactOrganization: 'Организация',
+  contactPerson: 'Контактное лицо',
+  contactPosition: 'Должность',
+  contactEmail: 'Email',
+  addressCity: 'Город',
+  addressState: 'Регион',
+  addressCountry: 'Страна',
+  allowInterpolation: 'Интерполяция',
+  recycling: 'Переработка',
+  tilePriority: 'Приоритет тайлов',
+  tileThreads: 'Потоков тайлов',
+  memoryCapacity: 'Объём памяти',
+  memoryThreshold: 'Порог памяти',
+  imageIOCache: 'Кэш изображений',
+  maxPoolSize: 'Макс. размер пула',
+  corePoolSize: 'Базовый размер пула',
+  keepAliveTime: 'Время жизни (мс)',
+  queueType: 'Тип очереди',
+  imageIOCacheThreshold: 'Порог кэша изображений',
+};
+
+const CONFIG_SECTIONS: { title: string; data: (c: GeoServerSettings) => Record<string, string>; keys: string[] }[] = [
+  {
+    title: 'Основные настройки',
+    data: (c) => c.settings,
+    keys: ['charset', 'numDecimals', 'onlineResource', 'verbose', 'verboseExceptions', 'webUIMode', 'globalServices', 'updateSequence', 'featureTypeCacheSize', 'xmlPostRequestLogBufferSize'],
+  },
+  {
+    title: 'Контакт',
+    data: (c) => c.contact,
+    keys: ['contactOrganization', 'contactPerson', 'contactPosition', 'contactEmail', 'addressCity', 'addressState', 'addressCountry'],
+  },
+  {
+    title: 'JAI',
+    data: (c) => c.jai,
+    keys: ['allowInterpolation', 'recycling', 'tilePriority', 'tileThreads', 'memoryCapacity', 'memoryThreshold', 'imageIOCache'],
+  },
+  {
+    title: 'Coverage Access',
+    data: (c) => c.coverageAccess,
+    keys: ['maxPoolSize', 'corePoolSize', 'keepAliveTime', 'queueType', 'imageIOCacheThreshold'],
+  },
+];
+
+function fmtVal(v: string): string {
+  if (v === 'true') return 'Да';
+  if (v === 'false') return 'Нет';
+  return v;
+}
 
 function StatCard({
   icon,
@@ -43,6 +104,8 @@ export default function Overview() {
   const [q, setQ] = useState('');
   const [manifest, setManifest] = useState<ManifestEntry[] | null>(null);
   const [manifestLoading, setManifestLoading] = useState(false);
+  const [gsSettings, setGsSettings] = useState<GeoServerSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState(false);
   const [modules, setModules] = useState<ModuleStatus[] | null>(null);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [mq, setMq] = useState('');
@@ -103,6 +166,19 @@ export default function Overview() {
     }
   }
 
+  async function loadSettings(force = false) {
+    if (!activeConnId) return;
+    if (!force && (gsSettings !== null || settingsLoading)) return;
+    setSettingsLoading(true);
+    try {
+      setGsSettings(await api.settings(activeConnId));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки настроек');
+    } finally {
+      setSettingsLoading(false);
+    }
+  }
+
   async function loadModules(force = false) {
     if (!activeConnId) return;
     if (!force && (modules !== null || modulesLoading)) return;
@@ -130,7 +206,10 @@ export default function Overview() {
   }
 
   useEffect(() => {
-    if (tab === 'config') loadManifest();
+    if (tab === 'config') {
+      loadManifest();
+      loadSettings();
+    }
     if (tab === 'modules') loadModules();
     if (tab === 'fonts') loadFonts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -292,10 +371,46 @@ export default function Overview() {
           </div>
         </div>
       ) : tab === 'config' ? (
-        <div className="flex min-h-0 flex-1 flex-col pt-4">
+        <div className="min-h-0 flex-1 overflow-auto pt-4">
+          {gsSettings?.dataDirectory && (
+            <div className="mb-4 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] px-4 py-2.5">
+              <span className="text-[12px] text-[var(--faint)]">Каталог данных:</span>
+              <span className="font-mono text-[12.5px] text-[var(--text)]">{gsSettings.dataDirectory}</span>
+            </div>
+          )}
+
+          {settingsLoading ? (
+            <div className="mb-4 grid place-items-center py-6">
+              <Loader size={24} />
+            </div>
+          ) : gsSettings ? (
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              {CONFIG_SECTIONS.map((sec) => {
+                const rows = sec.keys
+                  .map((k) => [CONFIG_LABELS[k] ?? k, sec.data(gsSettings)[k] ?? ''] as const)
+                  .filter(([, v]) => v !== '');
+                if (rows.length === 0) return null;
+                return (
+                  <div key={sec.title} className="rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
+                    <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">{sec.title}</h3>
+                    <div className="flex flex-col gap-1.5">
+                      {rows.map(([label, value]) => (
+                        <div key={label} className="flex items-baseline justify-between gap-3">
+                          <span className="shrink-0 text-[12px] text-[var(--faint)]">{label}</span>
+                          <span className="font-mono text-[12.5px] text-[var(--text)]">{fmtVal(value)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
           <div className="mb-3 flex items-center gap-2">
+            <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Манифест</span>
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Поиск по имени/названию/версии…" className="max-w-[320px]" />
-            <Button variant="subtle" onClick={() => loadManifest(true)}>
+            <Button variant="subtle" onClick={() => { loadManifest(true); loadSettings(true); }}>
               <RefreshCw size={13} />
               Обновить
             </Button>
@@ -311,9 +426,9 @@ export default function Overview() {
             </Button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-[var(--border)]">
+          <div className="rounded-lg border border-[var(--border)]">
             {manifestLoading || manifest === null ? (
-              <div className="grid h-full place-items-center">
+              <div className="grid h-full place-items-center py-6">
                 <Loader size={24} />
               </div>
             ) : (
