@@ -117,8 +117,8 @@ export default function Layers() {
   }
 
   function doExport(format: 'xlsx' | 'csv') {
-    const header = ['Слой', 'Рабочая область', 'Тип', 'Стиль по умолчанию', 'Ресурс', 'Стилей'];
-    const rows = filtered.map((l) => [l.name, l.workspace, l.type ?? '', l.defaultStyle ?? '', l.resourceName ?? '', String(l.availableStyles.length)]);
+    const header = ['Слой', 'Рабочая область', 'Тип', 'GWC', 'Стиль по умолчанию', 'Ресурс', 'Стилей'];
+    const rows = filtered.map((l) => [l.name, l.workspace, l.type ?? '', l.gwc ? 'да' : 'нет', l.defaultStyle ?? '', l.resourceName ?? '', String(l.availableStyles.length)]);
     if (format === 'xlsx') exportToExcel('geo_man_layers', header, rows);
     else exportToCsv('geo_man_layers', header, rows);
   }
@@ -181,6 +181,7 @@ export default function Layers() {
                     <th className="px-3 py-2 font-medium">Слой</th>
                     <th className="px-3 py-2 font-medium">Рабочая область</th>
                     <th className="px-3 py-2 font-medium">Тип</th>
+                    <th className="px-3 py-2 font-medium">GWC</th>
                     <th className="px-3 py-2 font-medium">Стиль по умолчанию</th>
                     <th className="px-3 py-2 font-medium">Ресурс</th>
                     <th className="px-3 py-2 font-medium">Стилей</th>
@@ -189,7 +190,7 @@ export default function Layers() {
                 <tbody>
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-3 py-6 text-center text-[var(--faint)]">
+                      <td colSpan={7} className="px-3 py-6 text-center text-[var(--faint)]">
                         Слои не найдены
                       </td>
                     </tr>
@@ -204,6 +205,9 @@ export default function Layers() {
                       <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{l.workspace}</td>
                       <td className="px-3 py-1.5">
                         {l.type && <span className="badge kind">{l.type}</span>}
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <span className={`badge ${l.gwc ? 'pk' : 'kind'}`}>{l.gwc ? 'да' : 'нет'}</span>
                       </td>
                       <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{l.defaultStyle ?? '—'}</td>
                       <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{l.resourceName ?? '—'}</td>

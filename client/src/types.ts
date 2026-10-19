@@ -43,6 +43,7 @@ export interface GeoLayer {
   resourceName: string | null;
   availableStyles: string[];
   href: string;
+  gwc: boolean;
   error?: string;
 }
 

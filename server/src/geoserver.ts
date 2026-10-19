@@ -116,6 +116,20 @@ export async function gsDataDirectory(cfg: GeoServerConfig): Promise<string> {
   return m ? m[1].trim().replace(/&amp;/g, '&') : '';
 }
 
+/**
+ * GWC REST (GeoWebCache) — отдельный контекст /gwc/rest (не /rest).
+ * Нужен, например, для списка тайловых слоёв (кэширование).
+ */
+export async function gsGwcJson<T = unknown>(cfg: GeoServerConfig, path: string): Promise<T> {
+  const host = cfg.host.replace(/\/+$/, '');
+  const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
+  const res = await fetch(`http://${host}:${cfg.port}/geoserver/gwc/rest${path}`, {
+    headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
+  });
+  if (!res.ok) throw new GeoServerError(friendlyStatus(res.status), res.status);
+  return (await res.json()) as T;
+}
+
 /** GeoServer отдаёт одиночный элемент без массива — всегда оборачивать. */
 export function asArray<T>(x: T | T[] | null | undefined): T[] {
   if (x == null) return [];

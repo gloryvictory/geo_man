@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getConnection, getSavedPassword } from '../sqlite';
-import { gsJson, asArray, mapLimit, type GeoServerConfig } from '../geoserver';
+import { gsJson, gsGwcJson, asArray, mapLimit, type GeoServerConfig } from '../geoserver';
 
 const r = Router();
 
@@ -106,16 +106,20 @@ r.get('/:id/layers', async (req, res, next) => {
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
     const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
 
-    const list = await gsJson<{ layers?: { layer?: LayerEntry[] | LayerEntry } }>(cfg, '/layers.json');
+    const [list, gwcList] = await Promise.all([
+      gsJson<{ layers?: { layer?: LayerEntry[] | LayerEntry } }>(cfg, '/layers.json'),
+      gsGwcJson<string[]>(cfg, '/layers.json').catch(() => [] as string[]),
+    ]);
+    const gwcSet = new Set(gwcList);
     const entries = asArray(list?.layers?.layer);
 
     const layers = await mapLimit(entries, 8, async (e) => {
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const d = await gsJson<any>(cfg, `/layers/${encodeURIComponent(e.name)}.json`);
-        return parseLayer(e.name, e.href, d?.layer);
+        return { ...parseLayer(e.name, e.href, d?.layer), gwc: gwcSet.has(e.name) };
       } catch (err) {
-        return errorEntry(e.name, e.href, err instanceof Error ? err.message : 'Ошибка');
+        return { ...errorEntry(e.name, e.href, err instanceof Error ? err.message : 'Ошибка'), gwc: gwcSet.has(e.name) };
       }
     });
 
