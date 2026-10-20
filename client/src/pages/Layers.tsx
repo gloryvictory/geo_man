@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { RefreshCw, FileDown } from 'lucide-react';
+import { RefreshCw, FileDown, Copy } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Modal, Input, Button, Info, Select, Tabs } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
-import type { LayerDetail, LayerAnalyticsRow, GwcInfo } from '../types';
+import type { LayerDetail, LayerAnalyticsRow, GwcInfo, GwcTileLayer } from '../types';
 
 const ANALYTICS_COLS: { key: keyof LayerAnalyticsRow; label: string }[] = [
   { key: 'l_name', label: 'Слой' },
@@ -32,7 +32,7 @@ function formatBytes(b: number): string {
 }
 
 export default function Layers() {
-  const { activeConnId, connected, layers, loadingLayers, fetchLayers } = useStore();
+  const { activeConnId, connected, layers, loadingLayers, fetchLayers, connections } = useStore();
   const [tab, setTab] = useState<'info' | 'analytics' | 'gwc'>('info');
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
@@ -44,6 +44,9 @@ export default function Layers() {
   const [gwcLoading, setGwcLoading] = useState(false);
   const [detail, setDetail] = useState<LayerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [gwcMenu, setGwcMenu] = useState<{ x: number; y: number; layer: GwcTileLayer } | null>(null);
+
+  const activeConn = connections.find((c) => c.id === activeConnId);
 
   const workspaceOptions = useMemo(() => {
     const set = new Set<string>();
@@ -126,6 +129,18 @@ export default function Layers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
 
+  useEffect(() => {
+    function close() {
+      setGwcMenu(null);
+    }
+    document.addEventListener('mousedown', close);
+    document.addEventListener('wheel', close, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('wheel', close);
+    };
+  }, []);
+
   async function openDetail(name: string) {
     if (!activeConnId) return;
     setDetailLoading(true);
@@ -164,6 +179,27 @@ export default function Layers() {
     ]);
     if (format === 'xlsx') exportToExcel('geo_man_gwc', header, rows);
     else exportToCsv('geo_man_gwc', header, rows);
+  }
+
+  function gwcServiceLink(kind: 'wms' | 'wmts' | 'tms', t: GwcTileLayer): string {
+    const c = activeConn;
+    const base = c ? `${c.scheme ?? 'http'}://${c.host}${c.port ? `:${c.port}` : ''}/geoserver` : '';
+    const grid = t.gridSubsets?.[0] ?? 'EPSG:900913';
+    const ext = (t.mimeFormats?.[0] ?? 'image/png').split('/').pop() || 'png';
+    if (kind === 'wms') return `${base}/wms?service=WMS&version=1.1.0&request=GetMap&layers=${t.name}`;
+    if (kind === 'wmts') return `${base}/gwc/service/wmts?layer=${t.name}`;
+    return `${base}/gwc/service/tms/1.0.0/${t.name}@${grid}@${ext}`;
+  }
+
+  async function copyGwcLink(kind: 'wms' | 'wmts' | 'tms', t: GwcTileLayer) {
+    const url = gwcServiceLink(kind, t);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(`Ссылка скопирована: ${url}`);
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
+    setGwcMenu(null);
   }
 
   if (!activeConnId) {
@@ -375,7 +411,14 @@ export default function Layers() {
                         </tr>
                       )}
                       {gwc.tileLayers.map((t) => (
-                        <tr key={t.name} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]">
+                        <tr
+                          key={t.name}
+                          className="cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setGwcMenu({ x: e.clientX, y: e.clientY, layer: t });
+                          }}
+                        >
                           <td className="px-3 py-1.5 font-mono text-[var(--text)]">{t.name}</td>
                           <td className="px-3 py-1.5">
                             <span className={`badge ${t.enabled ? 'pk' : 'kind'}`}>{t.enabled ? 'да' : 'нет'}</span>
@@ -426,6 +469,36 @@ export default function Layers() {
             </div>
           ) : null}
         </Modal>
+      )}
+
+      {tab === 'gwc' && gwcMenu && (
+        <div
+          className="fixed z-[100] min-w-[220px] rounded-lg border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-1 shadow-lg"
+          style={{ left: gwcMenu.x, top: gwcMenu.y }}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <button
+            className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[12.5px] text-[var(--text)] hover:bg-[var(--surface-hover)]"
+            onClick={() => copyGwcLink('wms', gwcMenu.layer)}
+          >
+            <Copy size={13} className="text-[var(--muted)]" />
+            Копировать ссылку на WMS
+          </button>
+          <button
+            className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[12.5px] text-[var(--text)] hover:bg-[var(--surface-hover)]"
+            onClick={() => copyGwcLink('wmts', gwcMenu.layer)}
+          >
+            <Copy size={13} className="text-[var(--muted)]" />
+            Копировать ссылку на WMTS
+          </button>
+          <button
+            className="flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-[12.5px] text-[var(--text)] hover:bg-[var(--surface-hover)]"
+            onClick={() => copyGwcLink('tms', gwcMenu.layer)}
+          >
+            <Copy size={13} className="text-[var(--muted)]" />
+            Копировать ссылку на TMS
+          </button>
+        </div>
       )}
     </div>
   );
