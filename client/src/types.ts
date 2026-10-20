@@ -4,6 +4,7 @@ export interface StoredConnection {
   host: string;
   port: number;
   username: string;
+  scheme: string;
   created_at: string;
   hasPassword: boolean;
 }

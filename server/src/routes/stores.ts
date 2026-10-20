@@ -4,8 +4,8 @@ import { gsJson, asArray, mapLimit, type GeoServerConfig } from '../geoserver';
 
 const r = Router();
 
-function cfgFor(host: string, port: number, username: string, password: string): GeoServerConfig {
-  return { host, port, username, password };
+function cfgFor(host: string, port: number, username: string, password: string, scheme = 'http'): GeoServerConfig {
+  return { host, port, username, password, scheme };
 }
 
 const KIND = {
@@ -41,7 +41,7 @@ r.get('/:id/stores', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const wsList = await gsJson<{ workspaces?: { workspace?: { name: string }[] | { name: string } } }>(cfg, '/workspaces.json');
     const workspaces = asArray(wsList?.workspaces?.workspace).map((w) => w.name);

@@ -9,6 +9,7 @@ export interface StoredConnection {
   host: string;
   port: number;
   username: string;
+  scheme: string;
   user_id: string | null;
   created_at: string;
 }
@@ -80,6 +81,7 @@ export function initDb(dbPath: string): DatabaseSync {
       host TEXT NOT NULL,
       port INTEGER NOT NULL DEFAULT 8080,
       username TEXT NOT NULL DEFAULT 'admin',
+      scheme TEXT NOT NULL DEFAULT 'http',
       user_id TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
@@ -99,6 +101,14 @@ export function initDb(dbPath: string): DatabaseSync {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
   `);
+
+  // миграция: добавить колонку scheme для существующих БД
+  {
+    const cols = db.prepare('PRAGMA table_info(connections)').all() as unknown as { name: string }[];
+    if (!cols.some((c) => c.name === 'scheme')) {
+      db.exec(`ALTER TABLE connections ADD COLUMN scheme TEXT NOT NULL DEFAULT 'http'`);
+    }
+  }
 
   seedAdmin();
 
@@ -213,12 +223,13 @@ export function getConnection(id: string): StoredConnection | undefined {
 
 export function createConnection(data: Omit<StoredConnection, 'id' | 'created_at' | 'user_id'>, userId: string): StoredConnection {
   const id = randomUUID();
-  db.prepare('INSERT INTO connections (id, name, host, port, username, user_id) VALUES (?, ?, ?, ?, ?, ?)').run(
+  db.prepare('INSERT INTO connections (id, name, host, port, username, scheme, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)').run(
     id,
     data.name,
     data.host,
     data.port,
     data.username,
+    data.scheme ?? 'http',
     userId
   );
   return getConnection(id)!;
@@ -231,11 +242,12 @@ export function updateConnection(
   const cur = getConnection(id);
   if (!cur) return undefined;
   const next = { ...cur, ...data };
-  db.prepare('UPDATE connections SET name = ?, host = ?, port = ?, username = ? WHERE id = ?').run(
+  db.prepare('UPDATE connections SET name = ?, host = ?, port = ?, username = ?, scheme = ? WHERE id = ?').run(
     next.name,
     next.host,
     next.port,
     next.username,
+    next.scheme ?? 'http',
     id
   );
   return getConnection(id);

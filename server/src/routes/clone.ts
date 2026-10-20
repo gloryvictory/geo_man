@@ -8,10 +8,11 @@ interface ConnLike {
   host: string;
   port: number;
   username: string;
+  scheme?: string;
 }
 
 function cfgFor(c: ConnLike, password: string): GeoServerConfig {
-  return { host: c.host, port: c.port, username: c.username, password };
+  return { host: c.host, port: c.port, username: c.username, password, scheme: c.scheme ?? 'http' };
 }
 
 /** Разбор квалифицированного имени «workspace:name». */
@@ -75,8 +76,8 @@ r.post('/:sourceId/clone', async (req, res, next) => {
     const dst = getConnection(targetId);
     if (!dst) return res.status(400).json({ error: 'Целевое подключение не найдено' });
 
-    const srcCfg = cfgFor(src, getSavedPassword(src.id) ?? '');
-    const dstCfg = cfgFor(dst, getSavedPassword(dst.id) ?? '');
+    const srcCfg = cfgFor({ ...src }, getSavedPassword(src.id) ?? '');
+    const dstCfg = cfgFor({ ...dst }, getSavedPassword(dst.id) ?? '');
 
     const results: { name: string; ok: boolean; error?: string }[] = [];
     for (const name of names) {

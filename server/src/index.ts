@@ -28,8 +28,8 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRouter);
-app.use('/api/users', usersRouter);
 app.use('/api', requireAuth);
+app.use('/api/users', usersRouter);
 
 // проверка владения подключением для всех /api/connections/:connId/*
 app.use('/api/connections/:connId', (req, res, next) => {

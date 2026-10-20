@@ -32,6 +32,7 @@ export interface GeoState {
     port: number;
     username: string;
     password: string;
+    scheme?: string;
   }) => Promise<{ ok: boolean; connected: boolean; id?: string; error?: string }>;
   updateConnection: (id: string, data: Record<string, unknown>) => Promise<void>;
   removeConnection: (id: string) => Promise<void>;

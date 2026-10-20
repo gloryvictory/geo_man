@@ -7,8 +7,10 @@
 
 ## Возможности
 
-- **Подключения** — `name, host, port, username, password` (по умолчанию логин
-  `admin`, пароль `geoserver`, порт `8080`). Всё сохраняется в SQLite
+- **Подключения** — `name, host, port, username, password, scheme (http|https)`
+  (по умолчанию логин `admin`, пароль `geoserver`, порт `8080`, протокол
+  `http`). Поддержка http/https и добавления из URL (парсинг
+  `https://host:port/geoserver`). Всё сохраняется в SQLite
   (`connections` + `connection_secrets`). При создании выполняется тест
   доступности (`GET /rest/about/version.json`). Подключения привязаны к
   пользователю: каждый видит только свои, администратор — все.

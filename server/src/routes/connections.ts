@@ -37,6 +37,7 @@ function cfgFor(conn: StoredConnection): GeoServerConfig {
     port: conn.port,
     username: conn.username,
     password: getSavedPassword(conn.id) ?? '',
+    scheme: conn.scheme ?? 'http',
   };
 }
 
@@ -55,7 +56,7 @@ r.get('/', (req, res) => {
 
 r.post('/', async (req, res, next) => {
   try {
-    const { name, host, port = 8080, username = 'admin', password = 'geoserver' } = (req.body ?? {}) as Record<string, unknown>;
+    const { name, host, port = 8080, username = 'admin', password = 'geoserver', scheme = 'http' } = (req.body ?? {}) as Record<string, unknown>;
     if (!name || !host) {
       return res.status(400).json({ error: 'Заполните name и host' });
     }
@@ -65,6 +66,7 @@ r.post('/', async (req, res, next) => {
         host: String(host),
         port: Number(port) || 8080,
         username: String(username || 'admin'),
+        scheme: scheme === 'https' ? 'https' : 'http',
       },
       req.user!.id
     );
@@ -81,12 +83,13 @@ r.put('/:id', async (req, res, next) => {
     const { conn, status } = ownConn(req, req.params.id);
     if (!conn) return res.status(status!).json({ error: status === 403 ? 'Нет доступа' : 'Подключение не найдено' });
 
-    const { name, host, port, username, password } = (req.body ?? {}) as Record<string, unknown>;
-    const patch: Partial<Pick<StoredConnection, 'name' | 'host' | 'port' | 'username'>> = {};
+    const { name, host, port, username, password, scheme } = (req.body ?? {}) as Record<string, unknown>;
+    const patch: Partial<Pick<StoredConnection, 'name' | 'host' | 'port' | 'username' | 'scheme'>> = {};
     if (name) patch.name = String(name);
     if (host) patch.host = String(host);
     if (port) patch.port = Number(port) || 8080;
     if (username) patch.username = String(username);
+    if (scheme) patch.scheme = scheme === 'https' ? 'https' : 'http';
 
     const updated = updateConnection(req.params.id, patch);
     if (!updated) return res.status(404).json({ error: 'Подключение не найдено' });

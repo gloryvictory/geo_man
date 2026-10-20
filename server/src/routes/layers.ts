@@ -4,8 +4,8 @@ import { gsJson, gsGwcJson, asArray, mapLimit, type GeoServerConfig } from '../g
 
 const r = Router();
 
-function cfgFor(host: string, port: number, username: string, password: string): GeoServerConfig {
-  return { host, port, username, password };
+function cfgFor(host: string, port: number, username: string, password: string, scheme = 'http'): GeoServerConfig {
+  return { host, port, username, password, scheme };
 }
 
 function splitName(full: string): { workspace: string; layer: string } {
@@ -104,7 +104,7 @@ r.get('/:id/layers', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const [list, gwcList] = await Promise.all([
       gsJson<{ layers?: { layer?: LayerEntry[] | LayerEntry } }>(cfg, '/layers.json'),
@@ -133,7 +133,7 @@ r.get('/:id/layers/analytics', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const wsList = await gsJson<{ workspaces?: { workspace?: { name: string }[] | { name: string } } }>(cfg, '/workspaces.json');
     const workspaces = asArray(wsList?.workspaces?.workspace).map((w) => w.name);
@@ -207,7 +207,7 @@ r.get('/:id/layers/:name', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const name = req.params.name;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -5,8 +5,8 @@ import { gsJson, gsText, gsBuffer, gsDataDirectory, asArray, type GeoServerConfi
 
 const r = Router();
 
-function cfgFor(host: string, port: number, username: string, password: string): GeoServerConfig {
-  return { host, port, username, password };
+function cfgFor(host: string, port: number, username: string, password: string, scheme = 'http'): GeoServerConfig {
+  return { host, port, username, password, scheme };
 }
 
 interface AboutResource {
@@ -20,7 +20,7 @@ r.get('/:id/info', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const [version, ws, layers, styles] = await Promise.all([
       gsJson<{ about?: { resource?: AboutResource[] | AboutResource } }>(cfg, '/about/version.json'),
@@ -80,7 +80,7 @@ r.get('/:id/manifest', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const manifest = await gsJson<{ about?: { resource?: ManifestResource[] | ManifestResource } }>(cfg, '/about/manifest.json');
     const resources = asArray(manifest?.about?.resource);
@@ -159,7 +159,7 @@ r.get('/:id/modules', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
     const html = await gsText(cfg, '/about/status');
     res.json(parseModuleStatus(html));
   } catch (e) {
@@ -181,7 +181,7 @@ r.get('/:id/fonts', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
     const buf = await gsBuffer(cfg, '/fonts');
     const parsed = JSON.parse(decodeFontsText(buf)) as { fonts?: string[] };
     res.json(parsed.fonts ?? []);
@@ -205,7 +205,7 @@ r.get('/:id/settings', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [raw, dataDirectory] = await Promise.all([

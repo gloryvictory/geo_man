@@ -4,15 +4,15 @@ import { gsGwcJson, asArray, mapLimit, type GeoServerConfig } from '../geoserver
 
 const r = Router();
 
-function cfgFor(host: string, port: number, username: string, password: string): GeoServerConfig {
-  return { host, port, username, password };
+function cfgFor(host: string, port: number, username: string, password: string, scheme = 'http'): GeoServerConfig {
+  return { host, port, username, password, scheme };
 }
 
 r.get('/:id/gwc', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [names, diskQuotaRaw] = await Promise.all([

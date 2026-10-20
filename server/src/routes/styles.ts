@@ -5,8 +5,8 @@ import AdmZip from 'adm-zip';
 
 const r = Router();
 
-function cfgFor(host: string, port: number, username: string, password: string): GeoServerConfig {
-  return { host, port, username, password };
+function cfgFor(host: string, port: number, username: string, password: string, scheme = 'http'): GeoServerConfig {
+  return { host, port, username, password, scheme };
 }
 
 interface StyleEntry {
@@ -64,7 +64,7 @@ r.get('/:id/styles', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const refs = await allStyleRefs(cfg);
     const styles = await mapLimit(refs, 8, async (ref) => {
@@ -87,7 +87,7 @@ r.get('/:id/styles/export', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     const refs = await allStyleRefs(cfg);
     const zip = new AdmZip();
@@ -114,7 +114,7 @@ r.get('/:id/styles/:name', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     // имя может быть «workspace:name» для стиля рабочей области
     const raw = req.params.name;
@@ -140,7 +140,7 @@ r.get('/:id/styles/:name/legend', async (req, res, next) => {
   try {
     const conn = getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Подключение не найдено' });
-    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '');
+    const cfg = cfgFor(conn.host, conn.port, conn.username, getSavedPassword(conn.id) ?? '', conn.scheme);
 
     // квалифицированное имя стиля (workspace:name или name)
     const style = req.params.name;
