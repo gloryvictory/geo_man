@@ -41,6 +41,13 @@ function cfgFor(conn: StoredConnection): GeoServerConfig {
   };
 }
 
+// 0 = «без порта» (порт протокола по умолчанию); отсутствие/пустое → 8080 (по умолчанию GeoServer)
+function parsePort(v: unknown): number {
+  if (v === undefined || v === null || v === '') return 8080;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 0 && n <= 65535 ? n : 8080;
+}
+
 async function testGeoServer(cfg: GeoServerConfig): Promise<{ connected: boolean; error?: string }> {
   try {
     await gsJson(cfg, '/about/version.json');
@@ -56,7 +63,8 @@ r.get('/', (req, res) => {
 
 r.post('/', async (req, res, next) => {
   try {
-    const { name, host, port = 8080, username = 'admin', password = 'geoserver', scheme = 'http' } = (req.body ?? {}) as Record<string, unknown>;
+    const { name, host, username = 'admin', password = 'geoserver', scheme = 'http' } = (req.body ?? {}) as Record<string, unknown>;
+    const port = parsePort((req.body ?? {}).port);
     if (!name || !host) {
       return res.status(400).json({ error: 'Заполните name и host' });
     }
@@ -64,7 +72,7 @@ r.post('/', async (req, res, next) => {
       {
         name: String(name),
         host: String(host),
-        port: Number(port) || 8080,
+        port,
         username: String(username || 'admin'),
         scheme: scheme === 'https' ? 'https' : 'http',
       },
@@ -87,7 +95,7 @@ r.put('/:id', async (req, res, next) => {
     const patch: Partial<Pick<StoredConnection, 'name' | 'host' | 'port' | 'username' | 'scheme'>> = {};
     if (name) patch.name = String(name);
     if (host) patch.host = String(host);
-    if (port) patch.port = Number(port) || 8080;
+    if (port !== undefined && port !== null && port !== '') patch.port = parsePort(port);
     if (username) patch.username = String(username);
     if (scheme) patch.scheme = scheme === 'https' ? 'https' : 'http';
 

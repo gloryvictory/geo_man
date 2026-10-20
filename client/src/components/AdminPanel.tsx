@@ -13,7 +13,7 @@ function parseGeoServerUrl(raw: string): { scheme: string; host: string; port: n
     return {
       scheme: u.protocol === 'https:' ? 'https' : 'http',
       host: u.hostname,
-      port: u.port ? Number(u.port) : 8080,
+      port: u.port ? Number(u.port) : 0,
     };
   } catch {
     return null;
@@ -321,13 +321,14 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
               <Field label="Хост">
                 <Input required value={connForm.host} onChange={(e) => setConnForm({ ...connForm, host: e.target.value })} />
               </Field>
-              <Field label="Порт">
+              <Field label="Порт" description="пусто — без порта">
                 <Input
                   type="number"
-                  min={1}
+                  min={0}
                   max={65535}
-                  value={connForm.port}
-                  onChange={(e) => setConnForm({ ...connForm, port: Number(e.target.value) || 8080 })}
+                  placeholder="8080"
+                  value={connForm.port || ''}
+                  onChange={(e) => setConnForm({ ...connForm, port: e.target.value === '' ? 0 : Number(e.target.value) })}
                 />
               </Field>
             </div>
@@ -372,7 +373,7 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
                   <tr key={c.id} className="border-b border-[var(--border)] last:border-0">
                     <td className="py-1.5 pr-2 font-mono">{c.name}</td>
                     <td className="py-1.5 pr-2 font-mono text-[var(--muted)]">
-                      {c.scheme ?? 'http'}://{c.host}:{c.port}
+                      {c.scheme ?? 'http'}://{c.host}{c.port ? `:${c.port}` : ''}
                     </td>
                     <td className="py-1.5 pr-2 font-mono">{c.username}</td>
                     <td className="py-1.5 text-right">

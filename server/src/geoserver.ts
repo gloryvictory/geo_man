@@ -16,11 +16,16 @@ export class GeoServerError extends Error {
   }
 }
 
+/** host[:port] — порт опускается при 0 (использовать порт протокола по умолчанию). */
+function gsHostPort(cfg: GeoServerConfig): string {
+  const host = cfg.host.replace(/\/+$/, '');
+  return cfg.port ? `${host}:${cfg.port}` : host;
+}
+
 /** REST-корень GeoServer. Контекстный путь по умолчанию — /geoserver. */
 export function gsBaseUrl(cfg: GeoServerConfig): string {
-  const host = cfg.host.replace(/\/+$/, '');
   const scheme = cfg.scheme ?? 'http';
-  return `${scheme}://${host}:${cfg.port}/geoserver/rest`;
+  return `${scheme}://${gsHostPort(cfg)}/geoserver/rest`;
 }
 
 function friendlyStatus(status: number): string {
@@ -89,9 +94,8 @@ function extractJSessionId(setCookie: string | null): string {
  * получаем через веб-интерфейс (Wicket StatusPage) с form login.
  */
 export async function gsDataDirectory(cfg: GeoServerConfig): Promise<string> {
-  const host = cfg.host.replace(/\/+$/, '');
   const scheme = cfg.scheme ?? 'http';
-  const base = `${scheme}://${host}:${cfg.port}/geoserver`;
+  const base = `${scheme}://${gsHostPort(cfg)}/geoserver`;
 
   let session = '';
   const r1 = await fetch(`${base}/web/`, { redirect: 'manual' });
@@ -124,10 +128,9 @@ export async function gsDataDirectory(cfg: GeoServerConfig): Promise<string> {
  * Нужен, например, для списка тайловых слоёв (кэширование).
  */
 export async function gsGwcJson<T = unknown>(cfg: GeoServerConfig, path: string): Promise<T> {
-  const host = cfg.host.replace(/\/+$/, '');
   const scheme = cfg.scheme ?? 'http';
   const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
-  const res = await fetch(`${scheme}://${host}:${cfg.port}/geoserver/gwc/rest${path}`, {
+  const res = await fetch(`${scheme}://${gsHostPort(cfg)}/geoserver/gwc/rest${path}`, {
     headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
   });
   if (!res.ok) throw new GeoServerError(friendlyStatus(res.status), res.status);
@@ -156,10 +159,9 @@ export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T, i: nu
 
 /** Легенда стиля через WMS GetLegendGraphic (возвращает PNG). */
 export async function gsLegendPng(cfg: GeoServerConfig, layer: string, style: string, width = 20, height = 20): Promise<Buffer> {
-  const host = cfg.host.replace(/\/+$/, '');
   const scheme = cfg.scheme ?? 'http';
   const url =
-    `${scheme}://${host}:${cfg.port}/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=${width}&HEIGHT=${height}` +
+    `${scheme}://${gsHostPort(cfg)}/geoserver/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&WIDTH=${width}&HEIGHT=${height}` +
     `&LAYER=${encodeURIComponent(layer)}&STYLE=${encodeURIComponent(style)}`;
   const auth = Buffer.from(`${cfg.username}:${cfg.password}`).toString('base64');
   let res: Response;

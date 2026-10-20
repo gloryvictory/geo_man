@@ -21,7 +21,7 @@ function parseGeoServerUrl(raw: string): { scheme: string; host: string; port: n
     return {
       scheme: u.protocol === 'https:' ? 'https' : 'http',
       host: u.hostname,
-      port: u.port ? Number(u.port) : 8080,
+      port: u.port ? Number(u.port) : 0,
     };
   } catch {
     return null;
@@ -146,13 +146,14 @@ export default function ConnectionModal({
             </Field>
           </div>
           <div className="w-[92px]">
-            <Field label="Порт">
+            <Field label="Порт" description="пусто — без порта">
               <Input
                 type="number"
-                min={1}
+                min={0}
                 max={65535}
-                value={form.port}
-                onChange={(e) => setForm({ ...form, port: Number(e.target.value) || 8080 })}
+                placeholder="8080"
+                value={form.port || ''}
+                onChange={(e) => setForm({ ...form, port: e.target.value === '' ? 0 : Number(e.target.value) })}
               />
             </Field>
           </div>
