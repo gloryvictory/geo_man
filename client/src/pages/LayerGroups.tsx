@@ -6,7 +6,7 @@ import { exportToExcel, exportToCsv } from '../lib/export';
 import type { GeoLayerGroup } from '../types';
 
 export default function LayerGroups() {
-  const { activeConnId, connected, layergroups, loadingLayergroups, fetchLayergroups } = useStore();
+  const { activeConnId, connected, connecting, layergroups, loadingLayergroups, fetchLayergroups } = useStore();
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoLayerGroup | null>(null);
@@ -46,6 +46,13 @@ export default function LayerGroups() {
 
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
+  }
+  if (connecting) {
+    return (
+      <div className="grid h-full place-items-center">
+        <Loader size={28} />
+      </div>
+    );
   }
   if (!connected) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Нет подключения — нажмите «Подключить».</div>;

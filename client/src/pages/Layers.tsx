@@ -32,7 +32,7 @@ function formatBytes(b: number): string {
 }
 
 export default function Layers() {
-  const { activeConnId, connected, layers, loadingLayers, fetchLayers, connections } = useStore();
+  const { activeConnId, connected, connecting, layers, loadingLayers, fetchLayers, connections } = useStore();
   const [tab, setTab] = useState<'info' | 'analytics' | 'gwc'>('info');
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
@@ -204,6 +204,13 @@ export default function Layers() {
 
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
+  }
+  if (connecting) {
+    return (
+      <div className="grid h-full place-items-center">
+        <Loader size={28} />
+      </div>
+    );
   }
   if (!connected) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Нет подключения — нажмите «Подключить».</div>;

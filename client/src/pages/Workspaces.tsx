@@ -8,7 +8,7 @@ import { exportToExcel, exportToCsv } from '../lib/export';
 import type { WorkspaceDetail } from '../types';
 
 export default function Workspaces() {
-  const { activeConnId, connected, workspaces, loadingWorkspaces, fetchWorkspaces } = useStore();
+  const { activeConnId, connected, connecting, workspaces, loadingWorkspaces, fetchWorkspaces } = useStore();
   const [q, setQ] = useState('');
   const [detail, setDetail] = useState<WorkspaceDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -48,6 +48,13 @@ export default function Workspaces() {
 
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
+  }
+  if (connecting) {
+    return (
+      <div className="grid h-full place-items-center">
+        <Loader size={28} />
+      </div>
+    );
   }
   if (!connected) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Нет подключения — нажмите «Подключить».</div>;

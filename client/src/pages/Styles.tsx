@@ -12,7 +12,7 @@ function qualifiedName(s: { name: string; workspace: string | null }): string {
 }
 
 export default function Styles() {
-  const { activeConnId, connected, styles, loadingStyles, fetchStyles } = useStore();
+  const { activeConnId, connected, connecting, styles, loadingStyles, fetchStyles } = useStore();
   const [tab, setTab] = useState<'info' | 'legend'>('info');
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
@@ -132,6 +132,13 @@ export default function Styles() {
 
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
+  }
+  if (connecting) {
+    return (
+      <div className="grid h-full place-items-center">
+        <Loader size={28} />
+      </div>
+    );
   }
   if (!connected) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Нет подключения — нажмите «Подключить».</div>;

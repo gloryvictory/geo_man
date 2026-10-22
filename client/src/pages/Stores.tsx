@@ -8,7 +8,7 @@ import type { GeoStore } from '../types';
 const STORE_KIND_LABEL: Record<string, string> = { data: 'Данные', coverage: 'Покрытие', wms: 'WMS' };
 
 export default function Stores() {
-  const { activeConnId, connected, stores, loadingStores, fetchStores } = useStore();
+  const { activeConnId, connected, connecting, stores, loadingStores, fetchStores } = useStore();
   const [q, setQ] = useState('');
   const [wsFilter, setWsFilter] = useState('');
   const [detail, setDetail] = useState<GeoStore | null>(null);
@@ -52,6 +52,13 @@ export default function Stores() {
 
   if (!activeConnId) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Добавьте подключение GeoServer.</div>;
+  }
+  if (connecting) {
+    return (
+      <div className="grid h-full place-items-center">
+        <Loader size={28} />
+      </div>
+    );
   }
   if (!connected) {
     return <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">Нет подключения — нажмите «Подключить».</div>;
