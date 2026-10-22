@@ -58,6 +58,8 @@ export const api = {
   layergroups: (id: string) => http<GeoLayerGroup[]>(`/connections/${id}/layergroups`),
   clone: (sourceId: string, body: { targetId: string; type: string; names: string[] }) =>
     http<{ results: { name: string; ok: boolean; error?: string }[] }>(`/connections/${sourceId}/clone`, { method: 'POST', body: JSON.stringify(body) }),
+  cloneAs: (sourceId: string, body: { targetId: string; type: string; name: string; newName: string }) =>
+    http<{ ok: boolean; name: string }>(`/connections/${sourceId}/clone-as`, { method: 'POST', body: JSON.stringify(body) }),
   stylesExportUrl: (id: string) => `${BASE}/connections/${id}/styles/export`,
   stylesLegendUrl: (id: string, name: string, width?: number, height?: number) => {
     let url = `${BASE}/connections/${id}/styles/${enc(name)}/legend`;

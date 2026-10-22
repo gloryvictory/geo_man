@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { Copy, GitCompare, RefreshCw, ArrowRight } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
-import { Loader, Input, Button, Select } from '../components/ui';
+import { Loader, Input, Button, Select, Modal, Field } from '../components/ui';
 
 const RES_TYPES = [
   { value: 'styles', label: 'Стили' },
@@ -48,6 +48,9 @@ export default function Clone() {
   const [compareMode, setCompareMode] = useState(false);
   const [search, setSearch] = useState('');
   const [copying, setCopying] = useState(false);
+  const [copyAsOpen, setCopyAsOpen] = useState(false);
+  const [copyAsValue, setCopyAsValue] = useState('');
+  const [copyingAs, setCopyingAs] = useState(false);
 
   const connOptions = connections.map((c) => ({ value: c.id, label: `${c.name} — ${c.host}:${c.port}` }));
 
@@ -135,6 +138,27 @@ export default function Clone() {
     }
   }
 
+  async function doCopyAs() {
+    if (!sourceId || !targetId || selected.size !== 1) return;
+    const name = Array.from(selected)[0];
+    const newName = copyAsValue.trim();
+    if (!newName) {
+      toast.error('Введите новое имя');
+      return;
+    }
+    setCopyingAs(true);
+    try {
+      await api.cloneAs(sourceId, { targetId, type: TYPE_MAP[resType], name, newName });
+      toast.success(`Скопировано как «${newName}»`);
+      setCopyAsOpen(false);
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка копирования');
+    } finally {
+      setCopyingAs(false);
+    }
+  }
+
   const supportsCopy = resType === 'styles' || resType === 'workspaces' || resType === 'layergroups';
 
   if (connections.length < 2) {
@@ -219,6 +243,18 @@ export default function Clone() {
             <Copy size={14} />
             Копировать
           </Button>
+          <Button
+            variant="subtle"
+            onClick={() => {
+              setCopyAsValue(Array.from(selected)[0] ?? '');
+              setCopyAsOpen(true);
+            }}
+            disabled={selected.size !== 1 || !supportsCopy}
+            title={supportsCopy ? 'Копировать выбранное под новым именем' : 'Не поддерживается для этого типа'}
+          >
+            <Copy size={14} />
+            Копировать как…
+          </Button>
           <Button variant="subtle" onClick={() => setCompareMode((v) => !v)}>
             <GitCompare size={14} />
             Сравнить
@@ -264,6 +300,30 @@ export default function Clone() {
           </div>
         </div>
       </div>
+
+      <Modal open={copyAsOpen} onClose={() => setCopyAsOpen(false)} title="Копировать как…" width={440}>
+        <div className="flex flex-col gap-3">
+          <div className="text-[12.5px] text-[var(--muted)]">
+            Выбранный элемент будет скопирован в целевое подключение с новым именем.
+          </div>
+          <Field label="Новое имя">
+            <Input
+              autoFocus
+              value={copyAsValue}
+              onChange={(e) => setCopyAsValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') doCopyAs();
+              }}
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <Button onClick={() => setCopyAsOpen(false)}>Отмена</Button>
+            <Button variant="primary" onClick={doCopyAs} disabled={copyingAs || !copyAsValue.trim()}>
+              {copyingAs ? '…' : 'Копировать'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
