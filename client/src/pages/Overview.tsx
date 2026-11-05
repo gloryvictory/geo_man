@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Tabs, Input, Button } from '../components/ui';

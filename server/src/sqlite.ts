@@ -100,6 +100,14 @@ export function initDb(dbPath: string): DatabaseSync {
       user_id TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
     );
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL DEFAULT 'info',
+      text TEXT NOT NULL,
+      username TEXT,
+      user_id TEXT,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
   `);
 
   // миграция: добавить колонку scheme для существующих БД
@@ -313,4 +321,27 @@ export function countAudit(userId: string, isAdmin: boolean): number {
 export function clearAudit(userId: string, isAdmin: boolean): void {
   const sql = isAdmin ? 'DELETE FROM audit_log' : 'DELETE FROM audit_log WHERE user_id = ?';
   db.prepare(sql).run(...(isAdmin ? [] : [userId]));
+}
+
+// ---------- сообщения (всплывающие уведомления) ----------
+
+export interface LogMessage {
+  id: number;
+  type: string;
+  text: string;
+  username: string | null;
+  user_id: string | null;
+  created_at: string;
+}
+
+export function logMessage(type: string, text: string, userId: string | null, username: string | null): void {
+  db.prepare('INSERT INTO messages (type, text, user_id, username) VALUES (?, ?, ?, ?)').run(type, text, userId, username);
+}
+
+export function listMessages(limit = 1000): LogMessage[] {
+  return db.prepare('SELECT id, type, text, username, user_id, created_at FROM messages ORDER BY id DESC LIMIT ?').all(limit) as unknown as LogMessage[];
+}
+
+export function clearMessages(): void {
+  db.prepare('DELETE FROM messages').run();
 }

@@ -17,6 +17,14 @@ export interface User {
   created_at: string;
 }
 
+export interface LogMessage {
+  id: number;
+  type: string;
+  text: string;
+  username: string | null;
+  created_at: string;
+}
+
 export interface GeoModule {
   name: string;
   version: string;

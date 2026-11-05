@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { Copy, GitCompare, RefreshCw, ArrowRight } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';

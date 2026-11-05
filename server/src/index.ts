@@ -15,6 +15,7 @@ import cloneRouter from './routes/clone';
 import gwcRouter from './routes/gwc';
 import authRouter from './routes/auth';
 import usersRouter from './routes/users';
+import messagesRouter from './routes/messages';
 import { requireAuth } from './auth';
 
 initDb(config.sqlitePath);
@@ -30,6 +31,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRouter);
 app.use('/api', requireAuth);
 app.use('/api/users', usersRouter);
+app.use('/api/messages', messagesRouter);
 
 // проверка владения подключением для всех /api/connections/:connId/*
 app.use('/api/connections/:connId', (req, res, next) => {

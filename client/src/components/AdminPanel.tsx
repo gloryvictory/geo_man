@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
+import { useEffect, useMemo, useState } from 'react';
+import toast from '../lib/toast';
+import { RefreshCw, FileDown, Trash2 } from 'lucide-react';
 import { api } from '../api';
 import { useStore } from '../store';
-import { Modal, Field, Input, Button, Tabs } from './ui';
-import type { User, StoredConnection } from '../types';
+import { Modal, Field, Input, Button, Tabs, Loader, Select } from './ui';
+import { exportToExcel, exportToCsv } from '../lib/export';
+import type { User, StoredConnection, LogMessage } from '../types';
 
 function parseGeoServerUrl(raw: string): { scheme: string; host: string; port: number } | null {
   const s = raw.trim();
@@ -31,7 +33,7 @@ const emptyConn = {
 
 export default function AdminPanel({ open, onClose }: { open: boolean; onClose: () => void }) {
   const store = useStore();
-  const [tab, setTab] = useState<'users' | 'connections'>('users');
+  const [tab, setTab] = useState<'users' | 'connections' | 'messages'>('users');
 
   // — пользователи —
   const [users, setUsers] = useState<User[]>([]);
@@ -46,6 +48,12 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
   const [connEditingId, setConnEditingId] = useState<string | null>(null);
   const [connSaving, setConnSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
+
+  // — сообщения —
+  const [messages, setMessages] = useState<LogMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [msgTypeFilter, setMsgTypeFilter] = useState('');
+  const [msgQ, setMsgQ] = useState('');
 
   async function reload() {
     setLoading(true);
@@ -197,14 +205,60 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
     }
   }
 
+  // — сообщения —
+  const filteredMessages = useMemo(() => {
+    let list = messages;
+    if (msgTypeFilter) list = list.filter((m) => m.type === msgTypeFilter);
+    const s = msgQ.trim().toLowerCase();
+    if (s) list = list.filter((m) => m.text.toLowerCase().includes(s) || (m.username ?? '').toLowerCase().includes(s));
+    return list;
+  }, [messages, msgTypeFilter, msgQ]);
+
+  async function loadMessages(force = false) {
+    if (!force && messagesLoading) return;
+    setMessagesLoading(true);
+    try {
+      setMessages(await api.listMessages());
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка загрузки сообщений');
+    } finally {
+      setMessagesLoading(false);
+    }
+  }
+
+  async function clearAllMessages() {
+    if (!window.confirm('Очистить все сообщения?')) return;
+    try {
+      await api.clearMessages();
+      toast.success('Сообщения очищены');
+      await loadMessages(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка');
+    }
+  }
+
+  function doExportMessages(format: 'xlsx' | 'csv') {
+    const label = (t: string) => (t === 'success' ? 'Успех' : t === 'error' ? 'Ошибка' : 'Инфо');
+    const header = ['Время', 'Тип', 'Пользователь', 'Сообщение'];
+    const rows = filteredMessages.map((m) => [m.created_at, label(m.type), m.username ?? '', m.text]);
+    if (format === 'xlsx') exportToExcel('geo_man_messages', header, rows);
+    else exportToCsv('geo_man_messages', header, rows);
+  }
+
+  useEffect(() => {
+    if (open && tab === 'messages') loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, tab]);
+
   return (
     <Modal open={open} onClose={onClose} title="Админка" width={720}>
       <Tabs
         value={tab}
-        onChange={(v) => setTab(v as 'users' | 'connections')}
+        onChange={(v) => setTab(v as 'users' | 'connections' | 'messages')}
         items={[
           { value: 'users', label: 'Пользователи' },
           { value: 'connections', label: 'Подключения' },
+          { value: 'messages', label: 'Сообщения' },
         ]}
       />
 
@@ -285,7 +339,7 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
             )}
           </div>
         </div>
-      ) : (
+      ) : tab === 'connections' ? (
         <div className="flex flex-col gap-3 pt-3">
           <form onSubmit={connSave} className="flex flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-3">
             <div className="text-[12px] font-medium text-[var(--muted)]">
@@ -391,6 +445,86 @@ export default function AdminPanel({ open, onClose }: { open: boolean; onClose: 
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3 pt-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={msgTypeFilter}
+              onChange={(v) => setMsgTypeFilter(v ?? '')}
+              options={[
+                { value: '', label: 'Все' },
+                { value: 'success', label: 'Успех' },
+                { value: 'error', label: 'Ошибка' },
+                { value: 'info', label: 'Инфо' },
+              ]}
+              width={140}
+            />
+            <Input value={msgQ} onChange={(e) => setMsgQ(e.target.value)} placeholder="Поиск по тексту/пользователю…" className="max-w-[260px]" />
+            <Button variant="subtle" onClick={() => loadMessages(true)}>
+              <RefreshCw size={13} />
+              Обновить
+            </Button>
+            <div className="flex-1" />
+            <span className="text-[12px] text-[var(--faint)]">{filteredMessages.length} из {messages.length}</span>
+            <Button variant="subtle" onClick={() => doExportMessages('xlsx')}>
+              <FileDown size={13} />
+              Excel
+            </Button>
+            <Button variant="subtle" onClick={() => doExportMessages('csv')}>
+              <FileDown size={13} />
+              CSV
+            </Button>
+            <Button variant="subtle" onClick={clearAllMessages}>
+              <Trash2 size={13} />
+              Очистить
+            </Button>
+          </div>
+
+          <div className="max-h-[55vh] overflow-auto rounded-lg border border-[var(--border)]">
+            {messagesLoading ? (
+              <div className="grid h-full place-items-center py-10">
+                <Loader size={24} />
+              </div>
+            ) : (
+              <table className="w-full border-collapse text-[12.5px]">
+                <thead className="sticky top-0 bg-[var(--bg-raised)]">
+                  <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--faint)]">
+                    <th className="px-3 py-2 font-medium">Время</th>
+                    <th className="px-3 py-2 font-medium">Тип</th>
+                    <th className="px-3 py-2 font-medium">Пользователь</th>
+                    <th className="px-3 py-2 font-medium">Сообщение</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredMessages.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-3 py-6 text-center text-[var(--faint)]">
+                        Сообщений нет
+                      </td>
+                    </tr>
+                  )}
+                  {filteredMessages.map((m) => (
+                    <tr key={m.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]">
+                      <td className="whitespace-nowrap px-3 py-1.5 font-mono text-[var(--muted)]">{m.created_at}</td>
+                      <td className="px-3 py-1.5">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              m.type === 'success' ? 'bg-[var(--accent)]' : m.type === 'error' ? 'bg-[#ef4444]' : 'bg-[var(--muted)]'
+                            }`}
+                          />
+                          <span>{m.type === 'success' ? 'Успех' : m.type === 'error' ? 'Ошибка' : 'Инфо'}</span>
+                        </span>
+                      </td>
+                      <td className="px-3 py-1.5 font-mono text-[var(--muted)]">{m.username ?? '—'}</td>
+                      <td className="max-w-[420px] px-3 py-1.5 text-[var(--text)]">{m.text}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}

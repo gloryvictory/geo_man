@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { useAuth } from '../store/authStore';
 import { Button, Field, Input } from './ui';
 

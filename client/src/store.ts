@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import toast from 'react-hot-toast';
+import toast from './lib/toast';
 import { api } from './api';
 import type { StoredConnection, GeoInfo, GeoLayer, GeoStyle, GeoWorkspace, GeoStore, GeoLayerGroup } from './types';
 

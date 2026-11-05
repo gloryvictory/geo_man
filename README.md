@@ -135,6 +135,9 @@ geo_man/
 | POST | `/api/users` | создать пользователя (админ) |
 | PUT | `/api/users/:id` | изменить пользователя (админ) |
 | DELETE | `/api/users/:id` | удалить пользователя (админ) |
+| POST | `/api/messages` | записать всплывающее сообщение (журнал) |
+| GET | `/api/messages` | список сообщений (админ) |
+| DELETE | `/api/messages` | очистить все сообщения (админ) |
 | GET | `/api/connections` | список подключений |
 | POST | `/api/connections` | создать (+тест доступности) |
 | PUT | `/api/connections/:id` | изменить подключение |

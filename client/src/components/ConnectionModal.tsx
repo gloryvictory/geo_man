@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import toast from 'react-hot-toast';
+import toast from '../lib/toast';
 import { useStore } from '../store';
 import { Modal, Field, Input, Button } from './ui';
 import type { StoredConnection } from '../types';

@@ -1,4 +1,4 @@
-import type { StoredConnection, User, GeoInfo, GeoLayer, LayerDetail, GeoStyle, GeoStyleDetail, GeoWorkspace, WorkspaceDetail, GeoStore, GeoLayerGroup, LayerAnalyticsRow, ManifestEntry, ModuleStatus, GeoServerSettings, GwcInfo } from './types';
+import type { StoredConnection, User, LogMessage, GeoInfo, GeoLayer, LayerDetail, GeoStyle, GeoStyleDetail, GeoWorkspace, WorkspaceDetail, GeoStore, GeoLayerGroup, LayerAnalyticsRow, ManifestEntry, ModuleStatus, GeoServerSettings, GwcInfo } from './types';
 
 const BASE_URL = (import.meta.env.BASE_URL ?? '/').replace(/\/+$/, '');
 const BASE = BASE_URL + '/api';
@@ -85,4 +85,9 @@ export const api = {
   updateUser: (id: string, d: { fio?: string; password?: string; role?: 'admin' | 'user' }) =>
     http<User>(`/users/${id}`, { method: 'PUT', body: JSON.stringify(d) }),
   deleteUser: (id: string) => http<{ ok: boolean }>(`/users/${id}`, { method: 'DELETE' }),
+
+  // сообщения (журнал всплывающих уведомлений)
+  logMessage: (d: { type: string; text: string }) => http<{ ok: boolean }>('/messages', { method: 'POST', body: JSON.stringify(d) }),
+  listMessages: () => http<LogMessage[]>('/messages'),
+  clearMessages: () => http<{ ok: boolean }>('/messages', { method: 'DELETE' }),
 };
