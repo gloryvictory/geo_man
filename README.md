@@ -81,7 +81,7 @@ npm install
 npm run dev        # сервер :3006 + клиент :5006
 ```
 
-Откройте http://localhost:5174, добавьте подключение
+Откройте http://localhost:5006/geo_man/, добавьте подключение
 (host / port / username / password). По умолчанию GeoServer слушает `8080`,
 логин `admin`, пароль `geoserver`.
 
