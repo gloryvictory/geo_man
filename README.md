@@ -92,11 +92,16 @@ npm run dev        # сервер :3006 + клиент :5006
 ```json
 {
   "server": { "host": "127.0.0.1", "port": 3006, "sqlitePath": "./data/geoman.db" },
-  "client": { "host": "127.0.0.1", "port": 5006, "apiProxy": "http://127.0.0.1:3006" }
+  "client": { "host": "127.0.0.1", "port": 5006, "apiProxy": "http://127.0.0.1:3006", "basePath": "geo_man" }
 }
 ```
 
-Переменные окружения (`HOST`, `PORT`, `SQLITE_PATH` — шаблон в
+`basePath` — префикс URL, под которым отдаётся всё приложение (и API, и
+интерфейс): например `geo_man` → интерфейс на `http://host:port/geo_man/`,
+API на `/geo_man/api/...`. Пустое значение — приложение в корне `/`. Работает
+и в dev (Vite), и в production (Express раздаёт собранный `client/dist`).
+
+Переменные окружения (`HOST`, `PORT`, `SQLITE_PATH`, `BASE_PATH` — шаблон в
 `server/.env.example`) переопределяют значения из `config.json`.
 
 ## Структура

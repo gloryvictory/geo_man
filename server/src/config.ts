@@ -4,7 +4,7 @@ import path from 'node:path';
 
 interface AppConfig {
   server: { host: string; port: number; sqlitePath: string };
-  client: { host: string; port: number; apiProxy: string };
+  client: { host: string; port: number; apiProxy: string; basePath?: string };
 }
 
 const DEFAULTS: AppConfig = {
@@ -36,8 +36,15 @@ function resolveSqlitePath(p: string): string {
   return path.resolve(serverDir, p);
 }
 
+// нормализуем базовый путь к виду «/geo_man» (ведущий слэш, без хвостового)
+function normalizeBasePath(p: string): string {
+  const s = (p || '').trim().replace(/^\/+|\/+$/g, '');
+  return s ? '/' + s : '';
+}
+
 export const config = {
   host: process.env.HOST || fileCfg.server.host,
   port: parseInt(process.env.PORT || String(fileCfg.server.port), 10),
   sqlitePath: resolveSqlitePath(process.env.SQLITE_PATH || fileCfg.server.sqlitePath),
+  basePath: normalizeBasePath(process.env.BASE_PATH || fileCfg.client.basePath || ''),
 };
