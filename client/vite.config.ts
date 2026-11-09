@@ -27,14 +27,22 @@ function loadConfig(): { client?: ClientConfig } {
 const cfg = loadConfig();
 const client = cfg.client ?? {};
 
+// нормализуем базовый путь к виду «/geo_man» (ведущий слэш, без хвостового)
+const basePath = client.basePath ? '/' + client.basePath.replace(/^\/+|\/+$/g, '') : '';
+
 export default defineConfig({
   plugins: [react()],
-  base: client.basePath ? client.basePath + '/' : '/',
+  base: basePath ? basePath + '/' : '/',
   server: {
     host: client.host ?? '127.0.0.1',
-    port: Number(client.port ?? 5174),
+    port: Number(client.port ?? 5006),
     proxy: {
-      '/api': client.apiProxy ?? 'http://127.0.0.1:3002',
+      [`${basePath}/api`]: {
+        target: client.apiProxy ?? 'http://127.0.0.1:3006',
+        changeOrigin: true,
+        // снять префикс basePath: /geo_man/api/... -> /api/... (бэкенд слушает /api)
+        rewrite: (p) => p.slice(basePath.length),
+      },
     },
   },
 });

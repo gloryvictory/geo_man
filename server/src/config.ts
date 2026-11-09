@@ -8,8 +8,8 @@ interface AppConfig {
 }
 
 const DEFAULTS: AppConfig = {
-  server: { host: '127.0.0.1', port: 3002, sqlitePath: './data/geoman.db' },
-  client: { host: '127.0.0.1', port: 5174, apiProxy: 'http://127.0.0.1:3002' },
+  server: { host: '127.0.0.1', port: 3006, sqlitePath: './data/geoman.db' },
+  client: { host: '127.0.0.1', port: 5006, apiProxy: 'http://127.0.0.1:3006' },
 };
 
 function loadFileConfig(): AppConfig {

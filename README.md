@@ -78,7 +78,7 @@
 
 ```bash
 npm install
-npm run dev        # сервер :3002 + клиент :5174
+npm run dev        # сервер :3006 + клиент :5006
 ```
 
 Откройте http://localhost:5174, добавьте подключение
@@ -91,8 +91,8 @@ npm run dev        # сервер :3002 + клиент :5174
 
 ```json
 {
-  "server": { "host": "127.0.0.1", "port": 3002, "sqlitePath": "./data/geoman.db" },
-  "client": { "host": "127.0.0.1", "port": 5174, "apiProxy": "http://127.0.0.1:3002" }
+  "server": { "host": "127.0.0.1", "port": 3006, "sqlitePath": "./data/geoman.db" },
+  "client": { "host": "127.0.0.1", "port": 5006, "apiProxy": "http://127.0.0.1:3006" }
 }
 ```
 
