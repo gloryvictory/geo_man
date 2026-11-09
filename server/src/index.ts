@@ -17,6 +17,7 @@ import authRouter from './routes/auth';
 import usersRouter from './routes/users';
 import messagesRouter from './routes/messages';
 import { requireAuth } from './auth';
+import { logError, logInfo, logFilePath } from './logger';
 
 initDb(config.sqlitePath);
 
@@ -63,8 +64,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
+app.use((err: Error & { status?: number }, req: Request, res: Response, _next: NextFunction) => {
   const status = err?.status || 500;
+  logError(err, { method: req.method, url: req.originalUrl });
   if (status >= 500) console.error(err);
   res.status(status).json({ error: err.message || 'Внутренняя ошибка' });
 });
@@ -72,4 +74,6 @@ app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: 
 app.listen(config.port, config.host, () => {
   console.log(`[geo_man] server listening on http://${config.host}:${config.port}`);
   console.log(`[geo_man] sqlite: ${config.sqlitePath}`);
+  logInfo(`server listening on http://${config.host}:${config.port}`);
+  logInfo(`log file: ${logFilePath()}`);
 });
