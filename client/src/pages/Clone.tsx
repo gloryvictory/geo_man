@@ -47,6 +47,7 @@ export default function Clone() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [compareMode, setCompareMode] = useState(false);
   const [search, setSearch] = useState('');
+  const [targetSearch, setTargetSearch] = useState('');
   const [copying, setCopying] = useState(false);
   const [copyAsOpen, setCopyAsOpen] = useState(false);
   const [copyAsValue, setCopyAsValue] = useState('');
@@ -97,6 +98,12 @@ export default function Clone() {
     if (!s) return sourceItems;
     return sourceItems.filter((n) => n.toLowerCase().includes(s));
   }, [sourceItems, search]);
+
+  const filteredTarget = useMemo(() => {
+    const s = targetSearch.trim().toLowerCase();
+    if (!s) return targetItems;
+    return targetItems.filter((n) => n.toLowerCase().includes(s));
+  }, [targetItems, targetSearch]);
 
   const onlySource = useMemo(() => sourceItems.filter((n) => !targetSet.has(n)), [sourceItems, targetSet]);
   const onlyTarget = useMemo(() => targetItems.filter((n) => !sourceSet.has(n)), [targetItems, sourceSet]);
@@ -271,18 +278,23 @@ export default function Clone() {
         <div className="flex min-h-0 flex-col rounded-lg border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
             <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Цель</span>
-            <span className="text-[12px] text-[var(--faint)]">{targetItems.length}</span>
+            <span className="text-[12px] text-[var(--faint)]">
+              {filteredTarget.length} из {targetItems.length}
+            </span>
+          </div>
+          <div className="border-b border-[var(--border)] px-2 py-1.5">
+            <Input value={targetSearch} onChange={(e) => setTargetSearch(e.target.value)} placeholder="Поиск…" className="w-full" />
           </div>
           <div className="min-h-0 flex-1 overflow-auto p-1.5">
             {loading ? (
               <div className="grid h-full place-items-center">
                 <Loader size={24} />
               </div>
-            ) : targetItems.length === 0 ? (
+            ) : filteredTarget.length === 0 ? (
               <div className="grid h-full place-items-center text-[var(--faint)]">Нет данных</div>
             ) : (
               <div className="flex flex-col gap-0.5">
-                {targetItems.map((name) => (
+                {filteredTarget.map((name) => (
                   <div
                     key={name}
                     className={`flex items-center gap-2 rounded px-2 py-1 ${
