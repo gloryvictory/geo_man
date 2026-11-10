@@ -35,6 +35,21 @@ export function exportToExcel(filename: string, header: string[], rows: unknown[
   );
 }
 
+/** Экспорт в Excel (.xlsx) с несколькими листами (закладками). */
+export function exportToExcelMulti(filename: string, sheets: { name: string; header: string[]; rows: unknown[][] }[]) {
+  const wb = XLSX.utils.book_new();
+  for (const sheet of sheets) {
+    const aoa = [sheet.header, ...sheet.rows.map((r) => r.map(cellForExcel))];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+  }
+  const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+  downloadBlob(
+    new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    `${filename}.xlsx`
+  );
+}
+
 /** Экспорт в CSV на стороне клиента (BOM для корректной кириллицы). */
 export function exportToCsv(filename: string, header: string[], rows: unknown[][]) {
   const enc = (v: unknown) => {

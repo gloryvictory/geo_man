@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from '../lib/toast';
-import { Copy, GitCompare, RefreshCw, ArrowRight } from 'lucide-react';
+import { Copy, GitCompare, RefreshCw, ArrowRight, FileDown } from 'lucide-react';
 import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Input, Button, Select, Modal, Field } from '../components/ui';
+import { exportToExcelMulti } from '../lib/export';
 
 const RES_TYPES = [
   { value: 'styles', label: 'Стили' },
@@ -25,6 +26,11 @@ const TYPE_MAP: Record<string, string> = {
 function nameOf(x: any): string {
   const ws = x?.workspace as string | null | undefined;
   return ws ? `${ws}:${x.name}` : x.name;
+}
+
+function connAddress(c: { name: string; scheme?: string; host: string; port: number } | undefined): string {
+  if (!c) return '—';
+  return `${c.name} (${c.scheme ?? 'http'}://${c.host}${c.port ? `:${c.port}` : ''})`;
 }
 
 async function fetchNames(type: string, id: string): Promise<string[]> {
@@ -107,6 +113,7 @@ export default function Clone() {
 
   const onlySource = useMemo(() => sourceItems.filter((n) => !targetSet.has(n)), [sourceItems, targetSet]);
   const onlyTarget = useMemo(() => targetItems.filter((n) => !sourceSet.has(n)), [targetItems, sourceSet]);
+  const both = useMemo(() => sourceItems.filter((n) => targetSet.has(n)), [sourceItems, targetSet]);
 
   function toggle(name: string) {
     setSelected((prev) => {
@@ -167,6 +174,38 @@ export default function Clone() {
   }
 
   const supportsCopy = resType === 'styles' || resType === 'workspaces' || resType === 'layergroups';
+
+  const sourceConn = connections.find((c) => c.id === sourceId);
+  const targetConn = connections.find((c) => c.id === targetId);
+  const resTypeLabel = RES_TYPES.find((t) => t.value === resType)?.label ?? resType;
+
+  function doExportCompare() {
+    exportToExcelMulti('geo_man_compare', [
+      {
+        name: 'Информация',
+        header: ['Параметр', 'Значение'],
+        rows: [
+          ['Тип ресурса', resTypeLabel],
+          ['Источник', connAddress(sourceConn)],
+          ['Цель', connAddress(targetConn)],
+        ],
+      },
+      { name: 'Есть в Источнике но нет в Цели', header: ['Имя'], rows: onlySource.map((n) => [n]) },
+      { name: 'Есть в Цели но нет в Источнике', header: ['Имя'], rows: onlyTarget.map((n) => [n]) },
+      { name: 'Есть в обоих', header: ['Имя'], rows: both.map((n) => [n]) },
+      {
+        name: 'Статистика по всем',
+        header: ['Показатель', 'Значение'],
+        rows: [
+          ['Всего в источнике', sourceItems.length],
+          ['Всего в цели', targetItems.length],
+          ['Есть только в источнике', onlySource.length],
+          ['Есть только в цели', onlyTarget.length],
+          ['Есть в обоих', both.length],
+        ],
+      },
+    ]);
+  }
 
   if (connections.length < 2) {
     return (
@@ -269,10 +308,16 @@ export default function Clone() {
             Сравнить
           </Button>
           {compareMode && (
-            <div className="mt-1 text-center text-[11px] leading-relaxed text-[var(--faint)]">
-              <div className="text-[var(--accent)]">+{onlySource.length} только в источнике</div>
-              <div className="text-[var(--muted)]">+{onlyTarget.length} только в цели</div>
-            </div>
+            <>
+              <div className="mt-1 text-center text-[11px] leading-relaxed text-[var(--faint)]">
+                <div className="text-[var(--accent)]">+{onlySource.length} только в источнике</div>
+                <div className="text-[var(--muted)]">+{onlyTarget.length} только в цели</div>
+              </div>
+              <Button variant="subtle" onClick={doExportCompare}>
+                <FileDown size={14} />
+                Экспорт в Excel
+              </Button>
+            </>
           )}
         </div>
 
