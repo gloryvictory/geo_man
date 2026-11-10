@@ -201,9 +201,18 @@ export default function Clone() {
         <div className="flex min-h-0 flex-col rounded-lg border border-[var(--border)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-3 py-2">
             <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Источник</span>
-            <span className="text-[12px] text-[var(--faint)]">
-              {selected.size} / {sourceItems.length}
-            </span>
+            <div className="flex items-center gap-2.5">
+              <div
+                className="flex cursor-pointer select-none items-center gap-1.5 text-[11.5px] text-[var(--muted)] hover:text-[var(--text)]"
+                onClick={toggleAll}
+              >
+                <input type="checkbox" readOnly checked={selected.size === filteredSource.length && filteredSource.length > 0} />
+                <span>Выбрать все</span>
+              </div>
+              <span className="text-[12px] text-[var(--faint)]">
+                {selected.size} / {sourceItems.length}
+              </span>
+            </div>
           </div>
           <div className="border-b border-[var(--border)] px-2 py-1.5">
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Поиск…" className="w-full" />
@@ -217,13 +226,6 @@ export default function Clone() {
               <div className="grid h-full place-items-center text-[var(--faint)]">Нет данных</div>
             ) : (
               <div className="flex flex-col gap-0.5">
-                <div
-                  className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 text-[11.5px] text-[var(--muted)] hover:bg-[var(--surface-hover)]"
-                  onClick={toggleAll}
-                >
-                  <input type="checkbox" readOnly checked={selected.size === filteredSource.length && filteredSource.length > 0} />
-                  <span>Выбрать все</span>
-                </div>
                 {filteredSource.map((name) => (
                   <div
                     key={name}
