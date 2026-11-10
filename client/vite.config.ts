@@ -40,8 +40,7 @@ export default defineConfig({
       [`${basePath}/api`]: {
         target: client.apiProxy ?? 'http://127.0.0.1:3006',
         changeOrigin: true,
-        // снять префикс basePath: /geo_man/api/... -> /api/... (бэкенд слушает /api)
-        rewrite: (p) => p.slice(basePath.length),
+        // префикс НЕ снимаем: бэкенд сам обслуживает basePath (/geo_man/api/*)
       },
     },
   },
