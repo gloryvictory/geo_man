@@ -5,7 +5,7 @@ import { useStore } from '../store';
 import { api } from '../api';
 import { Loader, Tabs, Input, Button } from '../components/ui';
 import { exportToExcel, exportToCsv } from '../lib/export';
-import { Layers, Palette, Box, ChevronRight, Database, Boxes, RefreshCw, FileDown } from 'lucide-react';
+import { Layers, Palette, Box, ChevronRight, Database, Boxes, RefreshCw, FileDown, LayoutGrid, Table } from 'lucide-react';
 import type { ManifestEntry, ModuleStatus, GeoServerSettings } from '../types';
 
 const CONFIG_LABELS: Record<string, string> = {
@@ -101,6 +101,7 @@ export default function Overview() {
   const navigate = useNavigate();
   const { activeConnId, connected, connecting, info, layers, stores, layergroups, loadingInfo } = useStore();
   const [tab, setTab] = useState<'info' | 'config' | 'modules' | 'fonts'>('info');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [q, setQ] = useState('');
   const [manifest, setManifest] = useState<ManifestEntry[] | null>(null);
   const [manifestLoading, setManifestLoading] = useState(false);
@@ -244,6 +245,21 @@ export default function Overview() {
     else exportToCsv('geo_man_fonts', header, rows);
   }
 
+  // ресурсы для блока со ссылками (карточки / таблица)
+  const resources = [
+    { key: 'workspaces', label: 'Рабочие области', value: info?.workspaceCount ?? 0, route: '/workspaces', icon: <Box size={18} /> },
+    { key: 'stores', label: 'Хранилища', value: stores.length, route: '/stores', icon: <Database size={18} /> },
+    { key: 'layergroups', label: 'Группы слоев', value: layergroups.length, route: '/layergroups', icon: <Boxes size={18} /> },
+    { key: 'layers', label: 'Слои', value: info?.layerCount ?? 0, route: '/layers', icon: <Layers size={18} /> },
+    { key: 'styles', label: 'Стили', value: info?.styleCount ?? 0, route: '/styles', icon: <Palette size={18} /> },
+  ];
+
+  function doExportResources() {
+    const header = ['Ресурс', 'Количество'];
+    const rows = resources.map((r) => [r.label, String(r.value)]);
+    exportToExcel('geo_man_resources', header, rows);
+  }
+
   if (!activeConnId) {
     return (
       <div className="grid h-full place-items-center text-[13px] text-[var(--faint)]">
@@ -296,38 +312,51 @@ export default function Overview() {
             </div>
           )}
 
-          <div className="mb-5 grid grid-cols-5 gap-3">
-            <StatCard
-              icon={<Box size={18} />}
-              label="Рабочие области"
-              value={info.workspaceCount}
-              onClick={() => navigate('/workspaces')}
-            />
-            <StatCard
-              icon={<Database size={18} />}
-              label="Хранилища"
-              value={stores.length}
-              onClick={() => navigate('/stores')}
-            />
-            <StatCard
-              icon={<Boxes size={18} />}
-              label="Группы слоев"
-              value={layergroups.length}
-              onClick={() => navigate('/layergroups')}
-            />
-            <StatCard
-              icon={<Layers size={18} />}
-              label="Слои"
-              value={info.layerCount}
-              onClick={() => navigate('/layers')}
-            />
-            <StatCard
-              icon={<Palette size={18} />}
-              label="Стили"
-              value={info.styleCount}
-              onClick={() => navigate('/styles')}
-            />
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-[12px] font-semibold uppercase tracking-wide text-[var(--faint)]">Ресурсы</span>
+            <div className="flex-1" />
+            <Button variant={viewMode === 'cards' ? 'light' : 'subtle'} onClick={() => setViewMode('cards')} title="Карточки">
+              <LayoutGrid size={14} />
+            </Button>
+            <Button variant={viewMode === 'table' ? 'light' : 'subtle'} onClick={() => setViewMode('table')} title="Таблица">
+              <Table size={14} />
+            </Button>
+            <Button variant="subtle" onClick={doExportResources}>
+              <FileDown size={13} />
+              Excel
+            </Button>
           </div>
+
+          {viewMode === 'cards' ? (
+            <div className="mb-5 grid grid-cols-5 gap-3">
+              {resources.map((r) => (
+                <StatCard key={r.key} icon={r.icon} label={r.label} value={r.value} onClick={() => navigate(r.route)} />
+              ))}
+            </div>
+          ) : (
+            <div className="mb-5 overflow-hidden rounded-lg border border-[var(--border)]">
+              <table className="w-full border-collapse text-[12.5px]">
+                <thead className="bg-[var(--bg-raised)]">
+                  <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wide text-[var(--faint)]">
+                    <th className="px-3 py-2 font-medium">Ресурс</th>
+                    <th className="px-3 py-2 text-right font-medium">Количество</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resources.map((r) => (
+                    <tr
+                      key={r.key}
+                      className="cursor-pointer border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-hover)]"
+                      onClick={() => navigate(r.route)}
+                    >
+                      <td className="px-3 py-1.5 text-[var(--text)]">{r.label}</td>
+                      <td className="px-3 py-1.5 text-right font-mono text-[var(--muted)]">{r.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 rounded-lg border border-[var(--border)] bg-[var(--bg-panel)] p-4">
